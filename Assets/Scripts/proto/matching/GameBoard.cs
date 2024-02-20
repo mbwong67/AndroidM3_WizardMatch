@@ -138,7 +138,7 @@ public class GameBoard : MonoBehaviour
                     curTok.leftNeighbor = playFieldTokens[col - 1,row];
                 }
 
-                // DANGER !! WORLD'S SLOWEST ALGORITHM! Will inevitably have to optomize. For now, only good to about 15 x 15 board sizes!!!
+                // DANGER !! WORLD'S SLOWEST ALGORITHM! Will inevitably have to optimize. For now, only good to about 15 x 15 board sizes!!!
                 SetupCheckForUpwardMatches(curTok);
                 SetupCheckForLeftwardMatches(curTok);
             }

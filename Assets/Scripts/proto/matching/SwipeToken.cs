@@ -57,6 +57,7 @@ namespace proto
         }
         public void SwapTokenPositions(SwipeToken otherToken)
         {
+            // temp
             Vector2 temp = transform.position;
             transform.position = otherToken.transform.position;
             transform.position = temp;
