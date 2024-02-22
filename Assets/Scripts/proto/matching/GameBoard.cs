@@ -1,17 +1,18 @@
 using System.Collections.Generic;
 using proto;
-using Unity.VisualScripting;
 using UnityEngine;
+using WizardMatch;
 
 public class GameBoard : MonoBehaviour
 {
     public List<SwipeScriptable> swipeScriptables = new List<SwipeScriptable>();
 
-    public SwipeToken[,] playFieldTokens = new SwipeToken[7,5]; 
+    public SwipeToken[,] playFieldTokens = new SwipeToken[7,7]; 
 
     private WizardMatchControls _controls;
 
-    [SerializeField] [Range(0.1f,50.0f)]private float _minimumRequiredScreenSwipeDelta = 10.0f;
+    [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
+    [SerializeField] [Range(0.1f,50.0f)]  private float _maximumDistanceFromTouchToToken = 10.0f;
     
     [SerializeField] private SwipeToken _tokenPrefab;
     [SerializeField] private float _horizontalSpacing = 0.75f;
@@ -21,12 +22,12 @@ public class GameBoard : MonoBehaviour
     [SerializeField] private LayerMask _filter;
 
     private Vector2 _touchScreenPosition;
-    private Vector2 _touchScreenPositionLastFrame;
+    private Vector2 _pointLastTouched;
 
     private GameObject _selectedToken;
 
     private bool _isDraggingToken;
-
+    private bool _boardIsReady = true;
 
     void Awake()
     {
@@ -35,80 +36,72 @@ public class GameBoard : MonoBehaviour
 
     void Update()
     {
-        HandleInput();
+        if (_boardIsReady)
+            HandleInput();
     }
     void LateUpdate()
     {
-        _touchScreenPositionLastFrame = _touchScreenPosition;
     }
 
     void HandleInput()
     {
-        // TODO : Make this a swiping motion instead. 
-
-        // detect if our token has been touched.
+        // check to see if the point we've touched is actually a token or not.
         if (_controls.Touch.Tap.triggered)
         {
+            _pointLastTouched = _touchScreenPosition;
             Ray ray = _camera.ScreenPointToRay(_touchScreenPosition);
-            RaycastHit2D hit = Physics2D.GetRayIntersection(ray,_filter);
+            RaycastHit2D hit = Physics2D.GetRayIntersection(ray);
             
             if (!hit.collider) return; // if we didn't actually tap anything that was a token, return.
             
-            _isDraggingToken = true;
             _selectedToken = hit.collider.gameObject;
-
+            _selectedToken.GetComponent<SwipeToken>().PlayAnimation("Pulsate");
         }
+        
+        Vector2 screenPosOfToken = _selectedToken ? _camera.WorldToScreenPoint(_selectedToken.transform.position) : _touchScreenPosition;
+        Vector2 direction = (_touchScreenPosition - screenPosOfToken).normalized;
+        
+        bool upOrDown = Vector2.Dot(direction,Vector2.up) > 0? true : false;
+        float angle = Vector2.Angle(Vector2.right,direction);
 
-        if (_isDraggingToken && _selectedToken)
+        // if we now have a valid selected token, and the position between our last tapped position
+        // and our current screen position is greater than some threshold, commence a swipe.
+        if (_selectedToken && Vector2.Distance(_pointLastTouched,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta)
         {
-            Vector2 screenPosOfToken = _camera.WorldToScreenPoint(_selectedToken.transform.position);
-            if (Vector2.Distance(screenPosOfToken,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta)
+            SwipeToken token = _selectedToken.GetComponent<SwipeToken>();
+            // swipe right
+            if (angle < 45.0f)
             {
-                Debug.Log("woah");
-                SwipeToken token = _selectedToken.GetComponent<SwipeToken>();
-                Vector2 direction = (_touchScreenPosition - screenPosOfToken).normalized;
-                bool upOrDown = Vector2.Dot(direction,Vector2.up) > 0? true : false;
-                float angle = Vector2.Angle(Vector2.right,direction);
-
-                if (angle < 45.0f)
+                if (token.gridPosition.x < playFieldTokens.GetLength(0) - 1)
                 {
-                    SwipeToken rightNeighbor = token.xPosition < (short) playFieldTokens.GetLength(0) - 1 ? playFieldTokens[token.xPosition + 1, token.yPosition] : null;
-                    Debug.Log(rightNeighbor == null);
-                    if (rightNeighbor)
-                    {
-                        Debug.Log("Swap Right!");
-                        token.SwapTokenPositions(rightNeighbor);
-                    }
-                    return;
-                }
-                if (angle >= 45.0f && angle < 135.0f && upOrDown)
+                    SwapTokenPositions(token,playFieldTokens[token.gridPosition.x + 1, token.gridPosition.y], SwipeDirection.RIGHT);
+                }                
+            }
+            // swipe up
+            else if (angle >= 45.0f && angle < 135.0f && upOrDown)
+            {
+                if (token.upNeighbor)
                 {
-                    Debug.Log(token.upNeighbor == null);
-
-                    if (token.upNeighbor)
-                    {
-                        Debug.Log("Swap Up!");
-                        token.SwapTokenPositions(token.upNeighbor);
-                    }
-                    return;
-                }
-                if (angle >= 45.0f && angle < 135.0f && !upOrDown)
-                {
-                    SwipeToken downNeighbor = token.yPosition < (short) playFieldTokens.GetLength(1) - 1 ? playFieldTokens[token.xPosition,token.yPosition + 1] : null;
-                    if (downNeighbor)
-                    {
-                        Debug.Log("Swap Down!");
-                        token.SwapTokenPositions(downNeighbor);
-                    }
-                    return;
-                }
-
-                if (token.leftNeighbor)
-                {
-                    Debug.Log("Swap Left!");
-                    token.SwapTokenPositions(token.leftNeighbor);
+                    SwapTokenPositions(token,token.upNeighbor, SwipeDirection.UP);
                 }
             }
+            // swipe down
+            else if (angle >= 45.0f && angle < 135.0f && !upOrDown)
+            {
+                if (token.gridPosition.y < playFieldTokens.GetLength(1) - 1)
+                {
+                    SwapTokenPositions(token,playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1], SwipeDirection.DOWN);
+                }
+            }
+            // swipe left
+            else if (angle >= 135.0f)
+            {
+                if (token.leftNeighbor)
+                {
+                    SwapTokenPositions(token,token.leftNeighbor,SwipeDirection.LEFT);
+                }
+            }
+            CancelGrabOfToken();
         }
     }
     void InitializeBoard()
@@ -126,7 +119,7 @@ public class GameBoard : MonoBehaviour
                 Vector2 offset = _startPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing);
                 SwipeToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
                 curTok.swipeData = swipeScriptables[(int) Mathf.Floor(Random.Range(0,5))];
-                curTok.Initialize((short) col, (short) row);
+                curTok.Initialize(new Vector2Int(col,row));
                 playFieldTokens[col,row] = curTok;
 
                 if (row > 0)
@@ -138,74 +131,82 @@ public class GameBoard : MonoBehaviour
                     curTok.leftNeighbor = playFieldTokens[col - 1,row];
                 }
 
-                // DANGER !! WORLD'S SLOWEST ALGORITHM! Will inevitably have to optimize. For now, only good to about 15 x 15 board sizes!!!
-                SetupCheckForUpwardMatches(curTok);
-                SetupCheckForLeftwardMatches(curTok);
+                // so far this is alright.
+                Setup_CheckForUpwardMatches(curTok);
+                Setup_CheckForLeftwardMatches(curTok);
             }
         }
         _controls = new WizardMatchControls();
         // assign actions to touch events
-        _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); Debug.Log("touched!!"); };
-        _controls.Touch.Tap.canceled += context => { _isDraggingToken = false; _selectedToken = null;};
+        _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
+        
+        _controls.Touch.Tap.canceled += context => CancelGrabOfToken();
         _controls.Enable();
 
     }
-    void SetupCheckForLeftwardMatches(SwipeToken token)
+    void CancelGrabOfToken()
     {
-        if (token.xPosition <= 1)
-            return;
+        // _isDraggingToken = false; // <-- unused
+        if (_selectedToken)
+            _selectedToken.GetComponent<SwipeToken>().PlayAnimation("Reset");
+        _selectedToken = null;
+    }
+    short GenerateRandomColorDifferentFromNeighbors(SwipeToken A, SwipeToken B, SwipeToken C = null)
+    {
+        short colorA = A.realColor;
+        short colorB = B.realColor;
+        short colorC = C? C.realColor : (short) -1;
 
-        SwipeToken leftNeighbor = token.leftNeighbor;
-        SwipeToken leftLeftNeighbor = leftNeighbor.leftNeighbor;
-
-        if (
-            token.realColor == leftNeighbor.realColor && leftNeighbor.realColor == leftLeftNeighbor.realColor
-        )
+        while (true)
         {
-            while (true)
-            {
-                short newCol = (short) Mathf.Floor(Random.Range(0,5));
-                SwipeToken rightNeighbor = token.xPosition < (short) playFieldTokens.GetLength(0) - 2 ? playFieldTokens[token.xPosition + 1, token.yPosition] : null;
-                if (newCol != leftNeighbor.realColor)
-                {
-                    if (rightNeighbor && newCol == rightNeighbor.realColor)
-                        rightNeighbor.ChangeColor(token.realColor);
-
-                    token.ChangeColor(newCol);
-                    SetupCheckForLeftwardMatches(leftNeighbor);
-                    break;
-                }
-            }
+            short newColor = (short) Mathf.Floor(Random.Range(0,swipeScriptables.Count));
+            if (newColor != colorA && newColor != colorB && (colorC != -1 ? newColor != colorC : true))
+                return newColor;
         }
     }
-    void SetupCheckForUpwardMatches(SwipeToken token)
+    void Setup_CheckForLeftwardMatches(SwipeToken token)
     {
-        if (token.yPosition <= 1)
+        if (token.gridPosition.x <= 1)
+            return;
+        SwipeToken leftNeighbor = token.leftNeighbor;
+        SwipeToken leftmostNeighbor = leftNeighbor.leftNeighbor;
+
+        // first check. make sure that we aren't forming a line with our colors.
+        bool firstMatch = leftNeighbor.realColor == token.realColor;
+        bool secondMatch = leftNeighbor.realColor == leftmostNeighbor.realColor;
+
+        if (firstMatch && secondMatch)
+        {
+            Debug.Log("\nLeftward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
+            short newColor = GenerateRandomColorDifferentFromNeighbors(token,leftNeighbor,token.upNeighbor);
+            token.ChangeColor(newColor);
+            Setup_CheckForLeftwardMatches(leftNeighbor);
+        }
+        
+    }
+    void Setup_CheckForUpwardMatches(SwipeToken token)
+    {
+        if (token.gridPosition.y <= 1)
             return;
         SwipeToken upNeighbor = token.upNeighbor;
-        SwipeToken upUpNeighbor = upNeighbor.upNeighbor;
+        SwipeToken upmostNeighbor = upNeighbor.upNeighbor;
 
-        // check if a coloumn has a match. if so, change the middle color
-        if (
-            token.realColor == upNeighbor.realColor && upNeighbor.realColor == upUpNeighbor.realColor
-        )
+        // first check. make sure that we aren't forming a line with our colors.
+        bool firstMatch = upNeighbor.realColor == token.realColor;
+        bool secondMatch = upNeighbor.realColor == upmostNeighbor.realColor;
+
+        if (firstMatch && secondMatch)
         {
-            while (true)
-            {
-                short newCol = (short) Mathf.Floor(Random.Range(0,5));
-                SwipeToken downNeighbor = token.yPosition < (short) playFieldTokens.GetLength(1) - 2 ? playFieldTokens[token.xPosition, token.yPosition + 1] : null;
-
-                if (newCol != upNeighbor.realColor)
-                {
-                    if (downNeighbor && newCol == downNeighbor.realColor)
-                        downNeighbor.ChangeColor(token.realColor);
-
-                    token.ChangeColor(newCol);
-                    SetupCheckForUpwardMatches(upNeighbor);
-                    break;
-                }
-            }
+            Debug.Log("\nUpward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
+            short newColor = GenerateRandomColorDifferentFromNeighbors(token,upNeighbor,token.leftNeighbor);
+            token.ChangeColor(newColor);
+            Setup_CheckForUpwardMatches(upNeighbor);
         }
+    }
+
+    void SwapTokenPositions(SwipeToken A, SwipeToken B, SwipeDirection direction)
+    {
+        A.SwapToken(B, direction);
     }
 
 }
