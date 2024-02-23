@@ -12,16 +12,20 @@ namespace proto
     {
         [SerializeField] public SwipeScriptable swipeData;
         [SerializeField] private Animator _animator;
+        [SerializeField][Range(0.01f,0.5f)] private float _snappingDistance = 0.05f;
+        private Vector2 _targetPosition;
         [SerializeField] [Range(0.1f,5.0f)] private float _timeToMove  = 1.0f;
 
         public bool matched;
+        public bool isMoving = false;
         public MatchType matchType = MatchType.NO_MATCH;
 
         public short realColor = 0;
 
         public GameBoard gameBoard;
         public Vector2Int gridPosition = new Vector2Int();
-        private WizardMatchControls _controls;
+        public List<SwipeToken> likeVerticalNeighbors = new List<SwipeToken>();
+        public List<SwipeToken> likeHorizontalNeighbors = new List<SwipeToken>();
 
         public void Initialize(Vector2Int position, GameBoard gb)
         {
@@ -60,14 +64,21 @@ namespace proto
         }
         void Awake()
         {
-            _controls = new WizardMatchControls();
-            _controls.Enable();
-
             _animator = GetComponent<Animator>();
+            _targetPosition = transform.position;
         }
         void Update()
         {
-
+            // just check to see if we are close or at our target position. if so, switch a flag to let the gameboard know we're done moving.
+            CheckIfInPosition();
+        }
+        void CheckIfInPosition()
+        {
+            if (Vector2.Distance(transform.position,_targetPosition) < _snappingDistance)
+            {
+                transform.position = _targetPosition;
+                isMoving = false;
+            }
         }
         /// <summary>
         /// Move the tokens on the board. This has no logical component and is purely cosmetic.
@@ -75,6 +86,7 @@ namespace proto
         /// <param name="otherToken"></param>
         public void SwapToken(SwipeToken otherToken)
         {
+            isMoving = true;
             Vector2 targetPositionA = new Vector2(
                 gridPosition.x * gameBoard.horizontalSpacing, gridPosition.y * - gameBoard.verticalSpacing
             ) + gameBoard.startPosition + (Vector2) gameBoard.transform.position;
@@ -99,8 +111,8 @@ namespace proto
                     if(token.gridPosition.y > 0 
                     && gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y - 1].realColor == token.realColor)
                     {
-                        //Debug.Log("Going Up");
                         neighbor = gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y - 1];
+                        likeVerticalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -108,8 +120,8 @@ namespace proto
                     if(token.gridPosition.y < gameBoard.playFieldTokens.GetLength(1) - 1
                     && gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1].realColor == token.realColor)
                     {
-                        //Debug.Log("Going Down");
                         neighbor = gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1];
+                        likeVerticalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -117,8 +129,8 @@ namespace proto
                     if(token.gridPosition.x > 0 
                     && gameBoard.playFieldTokens[token.gridPosition.x - 1,token.gridPosition.y].realColor == token.realColor)
                     {
-                        //Debug.Log("Going Left");
                         neighbor = gameBoard.playFieldTokens[token.gridPosition.x - 1,token.gridPosition.y];
+                        likeHorizontalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -126,8 +138,8 @@ namespace proto
                     if(token.gridPosition.x < gameBoard.playFieldTokens.GetLength(0) - 1
                     && gameBoard.playFieldTokens[token.gridPosition.x + 1,token.gridPosition.y].realColor == token.realColor)
                     {
-                        //Debug.Log("Going Right");
                         neighbor = gameBoard.playFieldTokens[token.gridPosition.x + 1,token.gridPosition.y];
+                        likeHorizontalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -140,9 +152,13 @@ namespace proto
         {
             Vector2 startingPos  = transform.position;
             float elapsedTime = 0;
+
+            _targetPosition = targetPosition;
+            isMoving = true;
+            
             while (elapsedTime < time)
             {
-                transform.position = Vector2.Lerp(startingPos, targetPosition, elapsedTime / time);
+                transform.position = Vector2.Lerp(startingPos, _targetPosition, elapsedTime / time);
                 elapsedTime += Time.deltaTime;
                 yield return null;
             }

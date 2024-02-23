@@ -17,18 +17,19 @@ public class GameBoard : MonoBehaviour
     
     [SerializeField] private SwipeToken _tokenPrefab;
     [SerializeField] private SwipeToken[] _swappedTokensThisMove = new SwipeToken[2];
-    [SerializeField] private Camera _camera;
+    [SerializeField] private List<SwipeToken> _matchingTokensThisMove = new List<SwipeToken>();
     [SerializeField] private LayerMask _filter;
     [SerializeField] private GameState _state;
     private WizardMatchControls _controls;
     private Vector2 _touchScreenPosition;
     private Vector2 _pointLastTouched;
     private GameObject _selectedToken;
-    private SwipeDirection _lastSwipedDirection;
+    private SwipeDirection _lastSwipedDirection; // unused so far
     void Awake()
     {
         InitializeBoard();
     }
+
     void Update()
     {
         switch(_state)
@@ -38,21 +39,29 @@ public class GameBoard : MonoBehaviour
                 break;
             case GameState.WAIT : 
                 CheckBoardForMatches(_swappedTokensThisMove[0]);
-                // CheckBoardForMatches(_swappedTokensThisMove[1]);
-                _state = GameState.READY;
+                CheckBoardForMatches(_swappedTokensThisMove[1]);
+                break;
+            case GameState.MATCHING :
+                BreakTokensAndScore();
                 break;
         }
     }
 
-
-
+    void BreakTokensAndScore()
+    {
+        if (_swappedTokensThisMove[0].isMoving || _swappedTokensThisMove[1].isMoving) return;
+        foreach(SwipeToken token in _matchingTokensThisMove)
+            Destroy(token.gameObject);
+        
+        _matchingTokensThisMove.Clear();
+    }
     void HandleInput()
     {
         // check to see if the point we've touched is actually a token or not.
         if (_controls.Touch.Tap.triggered)
         {
             _pointLastTouched = _touchScreenPosition;
-            Ray ray = _camera.ScreenPointToRay(_touchScreenPosition);
+            Ray ray = Camera.main.ScreenPointToRay(_touchScreenPosition);
             RaycastHit2D hit = Physics2D.GetRayIntersection(ray);
             
             if (!hit.collider) return; // if we didn't actually tap anything that was a token, return.
@@ -61,7 +70,7 @@ public class GameBoard : MonoBehaviour
             _selectedToken.GetComponent<SwipeToken>().PlayAnimation("Pulsate");
         }
         
-        Vector2 screenPosOfToken = _selectedToken ? _camera.WorldToScreenPoint(_selectedToken.transform.position) : _touchScreenPosition;
+        Vector2 screenPosOfToken = _selectedToken ? Camera.main.WorldToScreenPoint(_selectedToken.transform.position) : _touchScreenPosition;
         Vector2 direction = (_touchScreenPosition - screenPosOfToken).normalized;
         
         bool upOrDown = Vector2.Dot(direction,Vector2.up) > 0? true : false;
@@ -212,7 +221,6 @@ public class GameBoard : MonoBehaviour
             Setup_CheckForUpwardMatches(upNeighbor);
         }
     }
-
     void SwapTokenPositions(SwipeToken A, SwipeToken B)
     {
         _state = GameState.WAIT;
@@ -230,19 +238,43 @@ public class GameBoard : MonoBehaviour
         A.gridPosition = B.gridPosition;
         B.gridPosition = tempPosition;
     }
-
     void CheckBoardForMatches(SwipeToken token)
     {
-        int xCount = token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0);
-        // Debug.Log("Left : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0));
-        // Debug.Log("Right : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0));
-        // Debug.Log("Up : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0));
-        // Debug.Log("Down : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0));
-        int yCount = token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0);
+        token.likeHorizontalNeighbors.Clear();
+        token.likeVerticalNeighbors.Clear();
+        int xCount = 
+            token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0);
+        int yCount = 
+            token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0);
 
-        Debug.Log("X Count for color " + token.realColor + " : " + xCount);
-        Debug.Log("Y Count for color " + token.realColor + " : " + yCount);
-        
+        if (xCount >= 4 || yCount >= 4)
+            token.matchType = MatchType.FIVE_IN_A_ROW;
+        else if (xCount == 3 || yCount == 3)
+        {
+            if (xCount >= 2 && yCount >= 2)
+                token.matchType = MatchType.CROSS;
+            else
+                token.matchType = MatchType.FOUR_IN_A_ROW;
+        }
+        else if (xCount == 2 || yCount == 2)
+            token.matchType = MatchType.THREE_IN_A_ROW;
+        else
+            token.matchType = MatchType.NO_MATCH;
+
+        if (token.matchType == MatchType.NO_MATCH) return;
+
+        _state = GameState.MATCHING;
+        token.matched = true;
+
+        if (xCount > yCount)
+        {
+            token.likeVerticalNeighbors.Clear();
+        }            
+        else if (yCount > xCount)
+        {
+            token.likeHorizontalNeighbors.Clear();
+        }
+
     }
 
 }

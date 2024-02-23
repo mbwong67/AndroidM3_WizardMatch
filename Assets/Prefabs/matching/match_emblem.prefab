@@ -101,12 +101,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   swipeData: {fileID: 0}
   _animator: {fileID: 0}
+  _snappingDistance: 0.052
   _timeToMove: 0.2
   matched: 0
-  leftNeighbor: {fileID: 0}
-  upNeighbor: {fileID: 0}
+  isMoving: 0
+  matchType: 0
   realColor: 0
+  gameBoard: {fileID: 0}
   gridPosition: {x: 0, y: 0}
+  likeVerticalNeighbors: []
+  likeHorizontalNeighbors: []
 --- !u!58 &3616709420153498449
 CircleCollider2D:
   m_ObjectHideFlags: 0
