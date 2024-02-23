@@ -15,24 +15,20 @@ namespace proto
         [SerializeField] [Range(0.1f,5.0f)] private float _timeToMove  = 1.0f;
 
         public bool matched;
-        public SwipeToken leftNeighbor;
-        public SwipeToken upNeighbor;
+        public MatchType matchType = MatchType.NO_MATCH;
 
         public short realColor = 0;
 
+        public GameBoard gameBoard;
         public Vector2Int gridPosition = new Vector2Int();
         private WizardMatchControls _controls;
 
-        // TODO : this abstraction sucks. tie more closesly to playFieldTokens[x,y]
-
-        public void Initialize(Vector2Int position)
+        public void Initialize(Vector2Int position, GameBoard gb)
         {
-            
             if (!swipeData) // make sure the data isn't null before initializing
-            {
                 return;
-            }
 
+            gameBoard = gb;
             gridPosition = position;
             ChangeColor(swipeData.color);
         }
@@ -73,65 +69,72 @@ namespace proto
         {
 
         }
-        
-        public void SwapToken(SwipeToken otherToken, SwipeDirection direction)
+        /// <summary>
+        /// Move the tokens on the board. This has no logical component and is purely cosmetic.
+        /// </summary>
+        /// <param name="otherToken"></param>
+        public void SwapToken(SwipeToken otherToken)
         {
-            StartCoroutine(otherToken.SmoothMove(_timeToMove,transform.position));
+            Vector2 targetPositionA = new Vector2(
+                gridPosition.x * gameBoard.horizontalSpacing, gridPosition.y * - gameBoard.verticalSpacing
+            ) + gameBoard.startPosition + (Vector2) gameBoard.transform.position;
+            
+            Vector2 targetPositionB = new Vector2(
+                otherToken.gridPosition.x * gameBoard.horizontalSpacing, otherToken.gridPosition.y * -gameBoard.verticalSpacing
+            ) + gameBoard.startPosition + (Vector2) gameBoard.transform.position;
 
-            Vector2Int tempPosition = gridPosition;
-            SwipeToken tempUpNeighbor = otherToken.upNeighbor;
-            SwipeToken tempLeftNeighbor = otherToken.leftNeighbor;
+            StartCoroutine(otherToken.SmoothMove(_timeToMove,targetPositionA));
+            StartCoroutine(SmoothMove(_timeToMove,targetPositionB));
+        }
 
-            // SwipeToken tempToken = GetComponent<SwipeToken>();
+        // Recursively count the neighbors of similar color in a given direction. 
+        public int CountNeighborsInCertainDirection(SwipeToken token, SwipeDirection direction, int neighborCount)
+        {
+            
+            SwipeToken neighbor;
 
-            gridPosition = otherToken.gridPosition;
-            otherToken.gridPosition = tempPosition;
-
-            switch(direction)
+            switch (direction)
             {
-                case SwipeDirection.UP :
-
-                    otherToken.leftNeighbor = leftNeighbor;
-
-                    leftNeighbor = tempLeftNeighbor;
-                    upNeighbor = tempUpNeighbor;
-
-                    otherToken.upNeighbor = GetComponent<SwipeToken>();
-
+                case SwipeDirection.UP : 
+                    if(token.gridPosition.y > 0 
+                    && gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y - 1].realColor == token.realColor)
+                    {
+                        //Debug.Log("Going Up");
+                        neighbor = gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y - 1];
+                        neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
+                    }
                     break;
-                case SwipeDirection.DOWN :
-
-                    otherToken.upNeighbor = upNeighbor;
-                    upNeighbor = otherToken;
-                    
-                    otherToken.leftNeighbor = leftNeighbor;
-
-                    leftNeighbor = tempLeftNeighbor;
-
+                case SwipeDirection.DOWN : 
+                    if(token.gridPosition.y < gameBoard.playFieldTokens.GetLength(1) - 1
+                    && gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1].realColor == token.realColor)
+                    {
+                        //Debug.Log("Going Down");
+                        neighbor = gameBoard.playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1];
+                        neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
+                    }
                     break;
-                case SwipeDirection.LEFT :
-
-                    otherToken.upNeighbor = upNeighbor;
-                    leftNeighbor = tempLeftNeighbor;
-                    upNeighbor = tempUpNeighbor;
-
-                    otherToken.leftNeighbor = GetComponent<SwipeToken>();
-
+                case SwipeDirection.LEFT : 
+                    if(token.gridPosition.x > 0 
+                    && gameBoard.playFieldTokens[token.gridPosition.x - 1,token.gridPosition.y].realColor == token.realColor)
+                    {
+                        //Debug.Log("Going Left");
+                        neighbor = gameBoard.playFieldTokens[token.gridPosition.x - 1,token.gridPosition.y];
+                        neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
+                    }
                     break;
-                case SwipeDirection.RIGHT :
-
-
-                    otherToken.upNeighbor = upNeighbor;
-                    
-                    otherToken.leftNeighbor = leftNeighbor;
-                    leftNeighbor = otherToken;
-
-                    upNeighbor = tempUpNeighbor;
-
+                case SwipeDirection.RIGHT : 
+                    if(token.gridPosition.x < gameBoard.playFieldTokens.GetLength(0) - 1
+                    && gameBoard.playFieldTokens[token.gridPosition.x + 1,token.gridPosition.y].realColor == token.realColor)
+                    {
+                        //Debug.Log("Going Right");
+                        neighbor = gameBoard.playFieldTokens[token.gridPosition.x + 1,token.gridPosition.y];
+                        neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
+                    }
                     break;
             }
 
-            StartCoroutine(SmoothMove(_timeToMove,otherToken.transform.position));
+            return neighborCount;
+
         }
         IEnumerator SmoothMove (float time, Vector2 targetPosition)
         {
@@ -139,7 +142,7 @@ namespace proto
             float elapsedTime = 0;
             while (elapsedTime < time)
             {
-                transform.position = Vector2.Lerp(startingPos, targetPosition, (elapsedTime / time));
+                transform.position = Vector2.Lerp(startingPos, targetPosition, elapsedTime / time);
                 elapsedTime += Time.deltaTime;
                 yield return null;
             }

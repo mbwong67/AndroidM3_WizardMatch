@@ -266,12 +266,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 04596344fa0066f4a97d786702e504e1, type: 2}
   - {fileID: 11400000, guid: be17091c7e311d6419b133d5d1fd537c, type: 2}
   - {fileID: 11400000, guid: d99fbf7139c76474c89a85a25934f9a0, type: 2}
+  horizontalSpacing: 0.75
+  verticalSpacing: 0.75
+  startPosition: {x: -2.25, y: 0}
   _minimumRequiredScreenSwipeDelta: 10
   _maximumDistanceFromTouchToToken: 10
   _tokenPrefab: {fileID: 5927800508389819929, guid: 2c20a1f5332766d47baf65689121904e, type: 3}
-  _horizontalSpacing: 0.75
-  _verticalSpacing: 0.75
-  _startPosition: {x: -2.25, y: 0}
   _camera: {fileID: 519420031}
   _filter:
     serializedVersion: 2

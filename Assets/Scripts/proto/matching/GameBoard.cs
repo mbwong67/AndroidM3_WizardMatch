@@ -6,42 +6,45 @@ using WizardMatch;
 public class GameBoard : MonoBehaviour
 {
     public List<SwipeScriptable> swipeScriptables = new List<SwipeScriptable>();
-
     public SwipeToken[,] playFieldTokens = new SwipeToken[7,7]; 
+    public float horizontalSpacing = 0.75f;
+    public float verticalSpacing = 0.75f;
+    public Vector2 startPosition = new Vector3();
 
-    private WizardMatchControls _controls;
 
     [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
     [SerializeField] [Range(0.1f,50.0f)]  private float _maximumDistanceFromTouchToToken = 10.0f;
     
     [SerializeField] private SwipeToken _tokenPrefab;
-    [SerializeField] private float _horizontalSpacing = 0.75f;
-    [SerializeField] private float _verticalSpacing = 0.75f;
-    [SerializeField] private Vector2 _startPosition = new Vector3();
+    [SerializeField] private SwipeToken[] _swappedTokensThisMove = new SwipeToken[2];
     [SerializeField] private Camera _camera;
     [SerializeField] private LayerMask _filter;
-
+    [SerializeField] private GameState _state;
+    private WizardMatchControls _controls;
     private Vector2 _touchScreenPosition;
     private Vector2 _pointLastTouched;
-
     private GameObject _selectedToken;
-
-    private bool _isDraggingToken;
-    private bool _boardIsReady = true;
-
+    private SwipeDirection _lastSwipedDirection;
     void Awake()
     {
         InitializeBoard();
     }
-
     void Update()
     {
-        if (_boardIsReady)
-            HandleInput();
+        switch(_state)
+        {
+            case GameState.READY :
+                HandleInput();
+                break;
+            case GameState.WAIT : 
+                CheckBoardForMatches(_swappedTokensThisMove[0]);
+                // CheckBoardForMatches(_swappedTokensThisMove[1]);
+                _state = GameState.READY;
+                break;
+        }
     }
-    void LateUpdate()
-    {
-    }
+
+
 
     void HandleInput()
     {
@@ -69,20 +72,25 @@ public class GameBoard : MonoBehaviour
         if (_selectedToken && Vector2.Distance(_pointLastTouched,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta)
         {
             SwipeToken token = _selectedToken.GetComponent<SwipeToken>();
+            SwipeToken neighborToken;
             // swipe right
             if (angle < 45.0f)
             {
                 if (token.gridPosition.x < playFieldTokens.GetLength(0) - 1)
                 {
-                    SwapTokenPositions(token,playFieldTokens[token.gridPosition.x + 1, token.gridPosition.y], SwipeDirection.RIGHT);
+                    neighborToken = playFieldTokens[token.gridPosition.x + 1, token.gridPosition.y];
+                    _lastSwipedDirection = SwipeDirection.RIGHT;
+                    SwapTokenPositions(token,neighborToken);
                 }                
             }
             // swipe up
             else if (angle >= 45.0f && angle < 135.0f && upOrDown)
             {
-                if (token.upNeighbor)
+                if (token.gridPosition.y > 0)
                 {
-                    SwapTokenPositions(token,token.upNeighbor, SwipeDirection.UP);
+                    neighborToken = playFieldTokens[token.gridPosition.x, token.gridPosition.y - 1];
+                    _lastSwipedDirection = SwipeDirection.UP;
+                    SwapTokenPositions(token,neighborToken);
                 }
             }
             // swipe down
@@ -90,15 +98,19 @@ public class GameBoard : MonoBehaviour
             {
                 if (token.gridPosition.y < playFieldTokens.GetLength(1) - 1)
                 {
-                    SwapTokenPositions(token,playFieldTokens[token.gridPosition.x,token.gridPosition.y + 1], SwipeDirection.DOWN);
+                    neighborToken = playFieldTokens[token.gridPosition.x, token.gridPosition.y + 1];
+                    _lastSwipedDirection = SwipeDirection.DOWN;
+                    SwapTokenPositions(token,neighborToken);
                 }
             }
             // swipe left
             else if (angle >= 135.0f)
             {
-                if (token.leftNeighbor)
+                if (token.gridPosition.x > 0)
                 {
-                    SwapTokenPositions(token,token.leftNeighbor,SwipeDirection.LEFT);
+                    neighborToken = playFieldTokens[token.gridPosition.x - 1, token.gridPosition.y];
+                    _lastSwipedDirection = SwipeDirection.LEFT;
+                    SwapTokenPositions(token,neighborToken);
                 }
             }
             CancelGrabOfToken();
@@ -115,28 +127,18 @@ public class GameBoard : MonoBehaviour
         {
             for (int row = 0; row < playFieldTokens.GetLength(1); row++)
             {
-
-                Vector2 offset = _startPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing);
+                Vector2 offset = startPosition + new Vector2(col * horizontalSpacing, -row * verticalSpacing);
                 SwipeToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
                 curTok.swipeData = swipeScriptables[(int) Mathf.Floor(Random.Range(0,5))];
-                curTok.Initialize(new Vector2Int(col,row));
+                curTok.Initialize(new Vector2Int(col,row), GetComponent<GameBoard>());
                 playFieldTokens[col,row] = curTok;
 
-                if (row > 0)
-                {
-                    curTok.upNeighbor = playFieldTokens[col,row - 1];
-                }
-                if (col > 0)
-                {
-                    curTok.leftNeighbor = playFieldTokens[col - 1,row];
-                }
-
-                // so far this is alright.
                 Setup_CheckForUpwardMatches(curTok);
                 Setup_CheckForLeftwardMatches(curTok);
             }
         }
         _controls = new WizardMatchControls();
+        
         // assign actions to touch events
         _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
         
@@ -168,8 +170,9 @@ public class GameBoard : MonoBehaviour
     {
         if (token.gridPosition.x <= 1)
             return;
-        SwipeToken leftNeighbor = token.leftNeighbor;
-        SwipeToken leftmostNeighbor = leftNeighbor.leftNeighbor;
+        
+        SwipeToken leftNeighbor = playFieldTokens[token.gridPosition.x - 1, token.gridPosition.y];
+        SwipeToken leftmostNeighbor = playFieldTokens[token.gridPosition.x - 2, token.gridPosition.y];
 
         // first check. make sure that we aren't forming a line with our colors.
         bool firstMatch = leftNeighbor.realColor == token.realColor;
@@ -178,7 +181,10 @@ public class GameBoard : MonoBehaviour
         if (firstMatch && secondMatch)
         {
             Debug.Log("\nLeftward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
-            short newColor = GenerateRandomColorDifferentFromNeighbors(token,leftNeighbor,token.upNeighbor);
+            
+            short newColor = GenerateRandomColorDifferentFromNeighbors(token,leftNeighbor,
+                token.gridPosition.y > 0 ? playFieldTokens[token.gridPosition.x, token.gridPosition.y - 1] : null);
+            
             token.ChangeColor(newColor);
             Setup_CheckForLeftwardMatches(leftNeighbor);
         }
@@ -188,8 +194,8 @@ public class GameBoard : MonoBehaviour
     {
         if (token.gridPosition.y <= 1)
             return;
-        SwipeToken upNeighbor = token.upNeighbor;
-        SwipeToken upmostNeighbor = upNeighbor.upNeighbor;
+        SwipeToken upNeighbor = playFieldTokens[token.gridPosition.x, token.gridPosition.y - 1];
+        SwipeToken upmostNeighbor = playFieldTokens[token.gridPosition.x, token.gridPosition.y - 2];
 
         // first check. make sure that we aren't forming a line with our colors.
         bool firstMatch = upNeighbor.realColor == token.realColor;
@@ -197,16 +203,46 @@ public class GameBoard : MonoBehaviour
 
         if (firstMatch && secondMatch)
         {
+            
             Debug.Log("\nUpward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
-            short newColor = GenerateRandomColorDifferentFromNeighbors(token,upNeighbor,token.leftNeighbor);
+            
+            short newColor = GenerateRandomColorDifferentFromNeighbors(token,upNeighbor,
+                token.gridPosition.x > 0 ? playFieldTokens[token.gridPosition.x - 1, token.gridPosition.y] : null);
             token.ChangeColor(newColor);
             Setup_CheckForUpwardMatches(upNeighbor);
         }
     }
 
-    void SwapTokenPositions(SwipeToken A, SwipeToken B, SwipeDirection direction)
+    void SwapTokenPositions(SwipeToken A, SwipeToken B)
     {
-        A.SwapToken(B, direction);
+        _state = GameState.WAIT;
+
+        _swappedTokensThisMove[0] = A;
+        _swappedTokensThisMove[1] = B;
+
+        A.SwapToken(B);
+        
+        Vector2Int tempPosition = new Vector2Int(A.gridPosition.x, A.gridPosition.y);
+
+        playFieldTokens[B.gridPosition.x,B.gridPosition.y] = A;
+        playFieldTokens[A.gridPosition.x,A.gridPosition.y] = B;
+
+        A.gridPosition = B.gridPosition;
+        B.gridPosition = tempPosition;
+    }
+
+    void CheckBoardForMatches(SwipeToken token)
+    {
+        int xCount = token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0);
+        // Debug.Log("Left : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0));
+        // Debug.Log("Right : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0));
+        // Debug.Log("Up : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0));
+        // Debug.Log("Down : " + token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0));
+        int yCount = token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0);
+
+        Debug.Log("X Count for color " + token.realColor + " : " + xCount);
+        Debug.Log("Y Count for color " + token.realColor + " : " + yCount);
+        
     }
 
 }

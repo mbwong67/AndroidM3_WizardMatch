@@ -20,10 +20,16 @@ namespace WizardMatch
     };
     public enum MatchType
     {
-        NONE,
+        NO_MATCH,
         THREE_IN_A_ROW,
         FOUR_IN_A_ROW,
         CROSS,
         FIVE_IN_A_ROW
+    };
+    public enum GameState
+    {
+        READY,
+        WAIT,
+        MATCHING // unknown if needed yet.
     };
 }
