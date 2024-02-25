@@ -101,8 +101,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   swipeData: {fileID: 0}
   _animator: {fileID: 0}
-  _snappingDistance: 0.052
-  _timeToMove: 0.2
+  _snappingDistance: 0.05
+  _timeToMove: 0.17
+  _colorAssociations:
+  - {r: 1, g: 0, b: 0, a: 1}
+  - {r: 0, g: 1, b: 0, a: 1}
+  - {r: 0, g: 0, b: 1, a: 1}
+  - {r: 0.509434, g: 0.18983625, b: 0.49432695, a: 1}
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 1, g: 1, b: 0.3137255, a: 1}
   matched: 0
   isMoving: 0
   matchType: 0

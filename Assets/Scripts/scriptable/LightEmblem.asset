@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 73dd972f999af5d43b3c13dde97328da, type: 3}
-  m_Name: MysteryEmblem
+  m_Name: LightEmblem
   m_EditorClassIdentifier: 
   icon: {fileID: 0}
-  swipeElement: 4
-  color: 4
+  swipeElement: 5
+  color: 5

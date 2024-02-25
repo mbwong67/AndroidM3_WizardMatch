@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-
 namespace WizardMatch
 {
     public enum SwipeDirection
@@ -15,6 +14,8 @@ namespace WizardMatch
         EARTH,
         WATER,
         AIR,
+        DARK,
+        LIGHT,
         OTHER,
         NONE
     };
@@ -30,6 +31,8 @@ namespace WizardMatch
     {
         READY,
         WAIT,
-        MATCHING // unknown if needed yet.
+        MATCHING,
+        RETURN,
+        NONE
     };
 }

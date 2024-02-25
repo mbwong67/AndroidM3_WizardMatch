@@ -6,9 +6,9 @@ using WizardMatch;
 public class GameBoard : MonoBehaviour
 {
     public List<SwipeScriptable> swipeScriptables = new List<SwipeScriptable>();
-    public SwipeToken[,] playFieldTokens = new SwipeToken[7,7]; 
-    public float horizontalSpacing = 0.75f;
-    public float verticalSpacing = 0.75f;
+    public SwipeToken[,] playFieldTokens = new SwipeToken[8,8]; 
+    public float horizontalSpacing = 0.5f;
+    public float verticalSpacing = 0.5f;
     public Vector2 startPosition = new Vector3();
 
 
@@ -17,7 +17,11 @@ public class GameBoard : MonoBehaviour
     
     [SerializeField] private SwipeToken _tokenPrefab;
     [SerializeField] private SwipeToken[] _swappedTokensThisMove = new SwipeToken[2];
+    /// <summary>
+    /// Tokens that have matched this move due to any reason. 
+    /// </summary>
     [SerializeField] private List<SwipeToken> _matchingTokensThisMove = new List<SwipeToken>();
+    [SerializeField] private List<SwipeToken> _affectedTokensThisMove = new List<SwipeToken>();
     [SerializeField] private LayerMask _filter;
     [SerializeField] private GameState _state;
     private WizardMatchControls _controls;
@@ -37,26 +41,53 @@ public class GameBoard : MonoBehaviour
             case GameState.READY :
                 HandleInput();
                 break;
-            case GameState.WAIT : 
+            case GameState.WAIT :
+                foreach(SwipeToken token in playFieldTokens)
+                    if (token.isMoving) break;
                 CheckBoardForMatches(_swappedTokensThisMove[0]);
                 CheckBoardForMatches(_swappedTokensThisMove[1]);
                 break;
             case GameState.MATCHING :
-                BreakTokensAndScore();
+                if (_swappedTokensThisMove[0])
+                    BreakTokensAndScore(_swappedTokensThisMove[0]);
+                if (_swappedTokensThisMove[1])
+                    BreakTokensAndScore(_swappedTokensThisMove[1]);
+                break;
+            case GameState.RETURN :
+                ReturnUnmatchedSwipe();
                 break;
         }
     }
-
-    void BreakTokensAndScore()
+    void ReturnUnmatchedSwipe()
     {
-        if (_swappedTokensThisMove[0].isMoving || _swappedTokensThisMove[1].isMoving) return;
-        foreach(SwipeToken token in _matchingTokensThisMove)
+        if (_swappedTokensThisMove[0].isMoving || _swappedTokensThisMove[1].isMoving)
+            return;
+        SwapTokenPositions(_swappedTokensThisMove[0],_swappedTokensThisMove[1]);
+        _state = GameState.READY;
+    }
+    void BreakTokensAndScore(SwipeToken parentToken)
+    {
+        if (parentToken.isMoving || !parentToken.matched) return;
+
+        foreach(SwipeToken token in parentToken.likeHorizontalNeighbors)
+        {
             Destroy(token.gameObject);
+        }
+        foreach(SwipeToken token in parentToken.likeVerticalNeighbors)
+        {
+            Destroy(token.gameObject);
+        }
         
-        _matchingTokensThisMove.Clear();
+        Destroy(parentToken.gameObject);
     }
     void HandleInput()
     {
+        foreach(SwipeToken token in playFieldTokens)
+        {
+            // don't handle input if any token is currently in motion. 
+            if (token.isMoving)
+                return;
+        }
         // check to see if the point we've touched is actually a token or not.
         if (_controls.Touch.Tap.triggered)
         {
@@ -138,7 +169,7 @@ public class GameBoard : MonoBehaviour
             {
                 Vector2 offset = startPosition + new Vector2(col * horizontalSpacing, -row * verticalSpacing);
                 SwipeToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
-                curTok.swipeData = swipeScriptables[(int) Mathf.Floor(Random.Range(0,5))];
+                curTok.swipeData = swipeScriptables[(int) Mathf.Floor(Random.Range(0,swipeScriptables.Count))];
                 curTok.Initialize(new Vector2Int(col,row), GetComponent<GameBoard>());
                 playFieldTokens[col,row] = curTok;
 
@@ -157,7 +188,6 @@ public class GameBoard : MonoBehaviour
     }
     void CancelGrabOfToken()
     {
-        // _isDraggingToken = false; // <-- unused
         if (_selectedToken)
             _selectedToken.GetComponent<SwipeToken>().PlayAnimation("Reset");
         _selectedToken = null;
@@ -189,8 +219,6 @@ public class GameBoard : MonoBehaviour
 
         if (firstMatch && secondMatch)
         {
-            Debug.Log("\nLeftward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
-            
             short newColor = GenerateRandomColorDifferentFromNeighbors(token,leftNeighbor,
                 token.gridPosition.y > 0 ? playFieldTokens[token.gridPosition.x, token.gridPosition.y - 1] : null);
             
@@ -212,9 +240,6 @@ public class GameBoard : MonoBehaviour
 
         if (firstMatch && secondMatch)
         {
-            
-            Debug.Log("\nUpward Change : \n X Position : " + token.gridPosition.x + "\nY Position : " + token.gridPosition.y + "\n");
-            
             short newColor = GenerateRandomColorDifferentFromNeighbors(token,upNeighbor,
                 token.gridPosition.x > 0 ? playFieldTokens[token.gridPosition.x - 1, token.gridPosition.y] : null);
             token.ChangeColor(newColor);
@@ -240,15 +265,23 @@ public class GameBoard : MonoBehaviour
     }
     void CheckBoardForMatches(SwipeToken token)
     {
+        // clear any neighbors that were there previously.
+        
         token.likeHorizontalNeighbors.Clear();
         token.likeVerticalNeighbors.Clear();
-        int xCount = 
-            token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT,0);
-        int yCount = 
-            token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN,0) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP,0);
 
+        int xCount = 
+            token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
+        int yCount = 
+            token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP);
+
+        // test for each match type
+        // five in a row
         if (xCount >= 4 || yCount >= 4)
             token.matchType = MatchType.FIVE_IN_A_ROW;
+        
+        // this one is broken. will have to fix.
+        // four in a row or cross. cross takes priority.
         else if (xCount == 3 || yCount == 3)
         {
             if (xCount >= 2 && yCount >= 2)
@@ -256,24 +289,33 @@ public class GameBoard : MonoBehaviour
             else
                 token.matchType = MatchType.FOUR_IN_A_ROW;
         }
+        // three in a row
         else if (xCount == 2 || yCount == 2)
             token.matchType = MatchType.THREE_IN_A_ROW;
+        // no match
         else
             token.matchType = MatchType.NO_MATCH;
 
-        if (token.matchType == MatchType.NO_MATCH) return;
+        if (token.matchType == MatchType.NO_MATCH)
+        {
+            _state = GameState.RETURN;
+            return;
+        }
 
         _state = GameState.MATCHING;
         token.matched = true;
 
         if (xCount > yCount)
-        {
             token.likeVerticalNeighbors.Clear();
-        }            
         else if (yCount > xCount)
-        {
             token.likeHorizontalNeighbors.Clear();
-        }
+
+        foreach(SwipeToken neighborToken in token.likeHorizontalNeighbors)
+            _matchingTokensThisMove.Add(neighborToken);
+        foreach(SwipeToken neighborToken in token.likeVerticalNeighbors)
+            _matchingTokensThisMove.Add(neighborToken);
+
+        Debug.Log(token.matchType);
 
     }
 

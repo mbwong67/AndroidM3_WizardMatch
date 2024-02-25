@@ -13,10 +13,21 @@ namespace proto
         [SerializeField] public SwipeScriptable swipeData;
         [SerializeField] private Animator _animator;
         [SerializeField][Range(0.01f,0.5f)] private float _snappingDistance = 0.05f;
-        private Vector2 _targetPosition;
         [SerializeField] [Range(0.1f,5.0f)] private float _timeToMove  = 1.0f;
+        [SerializeField] private Color[] _colorAssociations = 
+        {
+            Color.red,
+            Color.green,
+            Color.blue,
+            Color.white,    
+            Color.magenta,
+            Color.yellow,
+            Color.gray,
+            Color.black
+        };
+        private Vector2 _targetPosition;
 
-        public bool matched;
+        public bool matched = false;
         public bool isMoving = false;
         public MatchType matchType = MatchType.NO_MATCH;
 
@@ -39,24 +50,7 @@ namespace proto
         public void ChangeColor(short color)
         {
             realColor = color;
-            switch(color)
-            {   
-                case 0 :
-                    GetComponent<SpriteRenderer>().color = Color.red; // <-- each getcomponent<spriterenderer> here is just a test for now.
-                    break;
-                case 1 :
-                    GetComponent<SpriteRenderer>().color = Color.green;
-                    break;                    
-                case 2 :
-                    GetComponent<SpriteRenderer>().color = Color.blue;
-                    break;                   
-                case 3 :
-                    GetComponent<SpriteRenderer>().color = Color.yellow;
-                    break;
-                case 4 :
-                    GetComponent<SpriteRenderer>().color = (Color.red + Color.blue) / 2;
-                    break;
-            }
+            GetComponent<SpriteRenderer>().color = _colorAssociations[realColor];
         }
         public void PlayAnimation(string animation)
         {
@@ -100,7 +94,7 @@ namespace proto
         }
 
         // Recursively count the neighbors of similar color in a given direction. 
-        public int CountNeighborsInCertainDirection(SwipeToken token, SwipeDirection direction, int neighborCount)
+        public int CountNeighborsInCertainDirection(SwipeToken token, SwipeDirection direction, int neighborCount = 0)
         {
             
             SwipeToken neighbor;

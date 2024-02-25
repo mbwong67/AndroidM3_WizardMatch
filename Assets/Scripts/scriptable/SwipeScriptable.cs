@@ -16,7 +16,9 @@ public class SwipeScriptable : ScriptableObject
         0 = red
         1 = green
         2 = blue
-        3 = yellow
+        3 = white
         4 = purple
+        5 = yellow
+        6+= black / grey
     */
 }
