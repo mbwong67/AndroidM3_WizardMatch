@@ -4,10 +4,16 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using WizardMatch;
 
+// game object that the player interacts with that holds the data for it's associated swipe icon
 namespace proto
-{
-    
-    // game object that the player interacts with that holds the data for it's associated swipe icon
+{   
+    public enum TokenState
+    {
+        IDLE,
+        MOVING,
+        FALLING,
+        DESTROYING
+    }
     public class SwipeToken : MonoBehaviour
     {
         [SerializeField] public SwipeScriptable swipeData;
@@ -28,15 +34,14 @@ namespace proto
         private Vector2 _targetPosition;
 
         public bool matched = false;
-        public bool isMoving = false;
-        public MatchType matchType = MatchType.NO_MATCH;
-
         public short realColor = 0;
-
+        public MatchType matchType = MatchType.NO_MATCH;
+        public TokenState state = TokenState.IDLE;
         public GameBoard gameBoard;
         public Vector2Int gridPosition = new Vector2Int();
         public List<SwipeToken> likeVerticalNeighbors = new List<SwipeToken>();
         public List<SwipeToken> likeHorizontalNeighbors = new List<SwipeToken>();
+
 
         public void Initialize(Vector2Int position, GameBoard gb)
         {
@@ -71,8 +76,26 @@ namespace proto
             if (Vector2.Distance(transform.position,_targetPosition) < _snappingDistance)
             {
                 transform.position = _targetPosition;
-                isMoving = false;
+                state = TokenState.IDLE;
             }
+            else
+            {
+                state = TokenState.MOVING;
+                SmoothMove();
+            }
+        }
+
+        public void DestroyToken()
+        {
+            PlayAnimation("Destroyed");
+        }
+        void FullyDestroyAndRegenerate()
+        {
+            Destroy(gameObject);
+        }
+        public void SetTargetPosition(Vector2 target)
+        {
+            _targetPosition = target;
         }
         /// <summary>
         /// Move the tokens on the board. This has no logical component and is purely cosmetic.
@@ -80,7 +103,8 @@ namespace proto
         /// <param name="otherToken"></param>
         public void SwapToken(SwipeToken otherToken)
         {
-            isMoving = true;
+            state = TokenState.MOVING;
+
             Vector2 targetPositionA = new Vector2(
                 gridPosition.x * gameBoard.horizontalSpacing, gridPosition.y * - gameBoard.verticalSpacing
             ) + gameBoard.startPosition + (Vector2) gameBoard.transform.position;
@@ -89,8 +113,8 @@ namespace proto
                 otherToken.gridPosition.x * gameBoard.horizontalSpacing, otherToken.gridPosition.y * -gameBoard.verticalSpacing
             ) + gameBoard.startPosition + (Vector2) gameBoard.transform.position;
 
-            StartCoroutine(otherToken.SmoothMove(_timeToMove,targetPositionA));
-            StartCoroutine(SmoothMove(_timeToMove,targetPositionB));
+            _targetPosition = targetPositionB;
+            otherToken.SetTargetPosition(targetPositionA);
         }
 
         // Recursively count the neighbors of similar color in a given direction. 
@@ -138,24 +162,12 @@ namespace proto
                     }
                     break;
             }
-
             return neighborCount;
-
         }
-        IEnumerator SmoothMove (float time, Vector2 targetPosition)
+        void SmoothMove ()
         {
-            Vector2 startingPos  = transform.position;
-            float elapsedTime = 0;
-
-            _targetPosition = targetPosition;
-            isMoving = true;
-            
-            while (elapsedTime < time)
-            {
-                transform.position = Vector2.Lerp(startingPos, _targetPosition, elapsedTime / time);
-                elapsedTime += Time.deltaTime;
-                yield return null;
-            }
+            transform.position = Vector2.Lerp(transform.position, _targetPosition, _timeToMove);
         }
+
     }
 }

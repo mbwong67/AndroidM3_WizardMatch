@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 679064735478557173}
   - component: {fileID: 522700604708707417}
   - component: {fileID: 5927800508389819929}
-  - component: {fileID: 3616709420153498449}
+  - component: {fileID: 8122264638319186237}
   - component: {fileID: 3424716748413308683}
   m_Layer: 3
   m_Name: match_emblem
@@ -111,14 +111,14 @@ MonoBehaviour:
   - {r: 1, g: 1, b: 1, a: 1}
   - {r: 1, g: 1, b: 0.3137255, a: 1}
   matched: 0
-  isMoving: 0
-  matchType: 0
   realColor: 0
+  matchType: 0
+  state: 0
   gameBoard: {fileID: 0}
   gridPosition: {x: 0, y: 0}
   likeVerticalNeighbors: []
   likeHorizontalNeighbors: []
---- !u!58 &3616709420153498449
+--- !u!58 &8122264638319186237
 CircleCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

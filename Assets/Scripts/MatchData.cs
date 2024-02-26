@@ -30,7 +30,7 @@ namespace WizardMatch
     public enum GameState
     {
         READY,
-        WAIT,
+        CHECK_SWIPE,
         MATCHING,
         RETURN,
         NONE

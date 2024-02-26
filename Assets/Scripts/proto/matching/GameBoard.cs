@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using proto;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using WizardMatch;
 
@@ -39,53 +40,86 @@ public class GameBoard : MonoBehaviour
         switch(_state)
         {
             case GameState.READY :
-                HandleInput();
+                ReadyPhase();
                 break;
-            case GameState.WAIT :
-                foreach(SwipeToken token in playFieldTokens)
-                    if (token.isMoving) break;
-                CheckBoardForMatches(_swappedTokensThisMove[0]);
-                CheckBoardForMatches(_swappedTokensThisMove[1]);
+            case GameState.CHECK_SWIPE :
+                CheckSwipePhase();
                 break;
             case GameState.MATCHING :
-                if (_swappedTokensThisMove[0])
-                    BreakTokensAndScore(_swappedTokensThisMove[0]);
-                if (_swappedTokensThisMove[1])
-                    BreakTokensAndScore(_swappedTokensThisMove[1]);
+                MatchingPhase();
                 break;
             case GameState.RETURN :
                 ReturnUnmatchedSwipe();
                 break;
         }
     }
+    void MatchingPhase()
+    {                
+        // i don't remember why these are here lol.
+        // the idea should be "start destroying all matching tokens this moment." that's it.
+        // _swappedTokensThisMove should be reserved for check_swipe contexts only ideally.
+        if (_swappedTokensThisMove[0])
+            BreakTokensAndScore(_swappedTokensThisMove[0]);
+        if (_swappedTokensThisMove[1])
+            BreakTokensAndScore(_swappedTokensThisMove[1]);
+        
+        // if any token is not null or not idle, repeat until a change happens.
+
+        foreach(SwipeToken token in playFieldTokens)
+        {
+            if (token && token.state == TokenState.IDLE)
+                continue;
+            else
+                return;
+        }
+
+        _state = GameState.READY;
+    }
+    void ReadyPhase()
+    {
+        HandleInput();
+    }
+    void ReturnPhase()
+    {
+        ReturnUnmatchedSwipe();
+    }
+    void CheckSwipePhase()
+    {
+        CheckTokenForMatches(_swappedTokensThisMove[0]);
+        CheckTokenForMatches(_swappedTokensThisMove[1]);
+        if (_swappedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swappedTokensThisMove[1].matchType == MatchType.NO_MATCH )
+            _state = GameState.RETURN;
+            
+    }
     void ReturnUnmatchedSwipe()
     {
-        if (_swappedTokensThisMove[0].isMoving || _swappedTokensThisMove[1].isMoving)
+        if (_swappedTokensThisMove[0].state == TokenState.MOVING ||
+            _swappedTokensThisMove[1].state == TokenState.MOVING)
             return;
         SwapTokenPositions(_swappedTokensThisMove[0],_swappedTokensThisMove[1]);
+        _matchingTokensThisMove.Clear();
         _state = GameState.READY;
     }
     void BreakTokensAndScore(SwipeToken parentToken)
     {
-        if (parentToken.isMoving || !parentToken.matched) return;
+        // temp function essentially. all bad.
+        if (parentToken.state == TokenState.MOVING || !parentToken.matched) return;
 
-        foreach(SwipeToken token in parentToken.likeHorizontalNeighbors)
+        foreach(SwipeToken token in _matchingTokensThisMove)
         {
-            Destroy(token.gameObject);
+            if (token != parentToken)
+                token.DestroyToken();
         }
-        foreach(SwipeToken token in parentToken.likeVerticalNeighbors)
-        {
-            Destroy(token.gameObject);
-        }
-        
-        Destroy(parentToken.gameObject);
+
+        parentToken.DestroyToken();        
+        _matchingTokensThisMove.Clear();
     }
     void HandleInput()
     {
         foreach(SwipeToken token in playFieldTokens)
         {
             // don't handle input if any token is currently in motion. 
-            if (token.isMoving)
+            if (token.state == TokenState.MOVING)
                 return;
         }
         // check to see if the point we've touched is actually a token or not.
@@ -246,9 +280,15 @@ public class GameBoard : MonoBehaviour
             Setup_CheckForUpwardMatches(upNeighbor);
         }
     }
+    /// <summary>
+    /// Swap the positions of tokens A and B both internally and externally, and prepare
+    /// for the matching and waiting states. 
+    /// </summary>
+    /// <param name="A"></param>
+    /// <param name="B"></param>
     void SwapTokenPositions(SwipeToken A, SwipeToken B)
     {
-        _state = GameState.WAIT;
+        _state = GameState.CHECK_SWIPE;
 
         _swappedTokensThisMove[0] = A;
         _swappedTokensThisMove[1] = B;
@@ -263,7 +303,11 @@ public class GameBoard : MonoBehaviour
         A.gridPosition = B.gridPosition;
         B.gridPosition = tempPosition;
     }
-    void CheckBoardForMatches(SwipeToken token)
+    /// <summary>
+    /// Given a token, check if there are any matches in any of the 4 directions of any kind.
+    /// </summary>
+    /// <param name="token"></param>
+    void CheckTokenForMatches(SwipeToken token)
     {
         // clear any neighbors that were there previously.
         
@@ -298,7 +342,6 @@ public class GameBoard : MonoBehaviour
 
         if (token.matchType == MatchType.NO_MATCH)
         {
-            _state = GameState.RETURN;
             return;
         }
 
