@@ -3,7 +3,6 @@ using proto;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using WizardMatch;
-
 public class GameBoard : MonoBehaviour
 {
     public List<SwipeScriptable> swipeScriptables = new List<SwipeScriptable>();
@@ -12,10 +11,7 @@ public class GameBoard : MonoBehaviour
     public float verticalSpacing = 0.5f;
     public Vector2 startPosition = new Vector3();
 
-
     [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
-    [SerializeField] [Range(0.1f,50.0f)]  private float _maximumDistanceFromTouchToToken = 10.0f;
-    
     [SerializeField] private SwipeToken _tokenPrefab;
     [SerializeField] private SwipeToken[] _swappedTokensThisMove = new SwipeToken[2];
     /// <summary>
@@ -49,9 +45,10 @@ public class GameBoard : MonoBehaviour
                 MatchingPhase();
                 break;
             case GameState.RETURN :
-                ReturnUnmatchedSwipe();
+                ReturnPhase();
                 break;
         }
+        Debug.Log(_state);
     }
     void MatchingPhase()
     {                
@@ -70,7 +67,9 @@ public class GameBoard : MonoBehaviour
             if (token && token.state == TokenState.IDLE)
                 continue;
             else
+            {
                 return;
+            }
         }
 
         _state = GameState.READY;
@@ -256,7 +255,7 @@ public class GameBoard : MonoBehaviour
             short newColor = GenerateRandomColorDifferentFromNeighbors(token,leftNeighbor,
                 token.gridPosition.y > 0 ? playFieldTokens[token.gridPosition.x, token.gridPosition.y - 1] : null);
             
-            token.ChangeColor(newColor);
+            token.SetColor(newColor);
             Setup_CheckForLeftwardMatches(leftNeighbor);
         }
         
@@ -276,7 +275,7 @@ public class GameBoard : MonoBehaviour
         {
             short newColor = GenerateRandomColorDifferentFromNeighbors(token,upNeighbor,
                 token.gridPosition.x > 0 ? playFieldTokens[token.gridPosition.x - 1, token.gridPosition.y] : null);
-            token.ChangeColor(newColor);
+            token.SetColor(newColor);
             Setup_CheckForUpwardMatches(upNeighbor);
         }
     }
@@ -358,7 +357,7 @@ public class GameBoard : MonoBehaviour
         foreach(SwipeToken neighborToken in token.likeVerticalNeighbors)
             _matchingTokensThisMove.Add(neighborToken);
 
-        Debug.Log(token.matchType);
+        // Debug.Log(token.matchType);
 
     }
 

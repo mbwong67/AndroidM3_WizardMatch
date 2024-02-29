@@ -271,12 +271,12 @@ MonoBehaviour:
   verticalSpacing: 0.643
   startPosition: {x: -2.25, y: 0}
   _minimumRequiredScreenSwipeDelta: 10
-  _maximumDistanceFromTouchToToken: 10
   _tokenPrefab: {fileID: 5927800508389819929, guid: 2c20a1f5332766d47baf65689121904e, type: 3}
   _swappedTokensThisMove:
   - {fileID: 0}
   - {fileID: 0}
   _matchingTokensThisMove: []
+  _affectedTokensThisMove: []
   _filter:
     serializedVersion: 2
     m_Bits: 8

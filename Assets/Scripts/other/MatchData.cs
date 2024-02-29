@@ -1,6 +1,13 @@
 using System.Collections.Generic;
 namespace WizardMatch
 {
+    public enum TokenState
+    {
+        IDLE,
+        MOVING,
+        FALLING,
+        DESTROYING
+    }
     public enum SwipeDirection
     {
         UP,

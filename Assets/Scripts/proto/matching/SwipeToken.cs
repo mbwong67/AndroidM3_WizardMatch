@@ -7,19 +7,13 @@ using WizardMatch;
 // game object that the player interacts with that holds the data for it's associated swipe icon
 namespace proto
 {   
-    public enum TokenState
-    {
-        IDLE,
-        MOVING,
-        FALLING,
-        DESTROYING
-    }
+
     public class SwipeToken : MonoBehaviour
     {
         [SerializeField] public SwipeScriptable swipeData;
         [SerializeField] private Animator _animator;
         [SerializeField][Range(0.01f,0.5f)] private float _snappingDistance = 0.05f;
-        [SerializeField] [Range(0.1f,5.0f)] private float _timeToMove  = 1.0f;
+        [SerializeField] [Range(1.0f,100.0f)] private float _swipeSpeed  = 30.0f;
         [SerializeField] private Color[] _colorAssociations = 
         {
             Color.red,
@@ -47,12 +41,11 @@ namespace proto
         {
             if (!swipeData) // make sure the data isn't null before initializing
                 return;
-
             gameBoard = gb;
             gridPosition = position;
-            ChangeColor(swipeData.color);
+            SetColor(swipeData.color);
         }
-        public void ChangeColor(short color)
+        public void SetColor(short color)
         {
             realColor = color;
             GetComponent<SpriteRenderer>().color = _colorAssociations[realColor];
@@ -69,7 +62,9 @@ namespace proto
         void Update()
         {
             // just check to see if we are close or at our target position. if so, switch a flag to let the gameboard know we're done moving.
-            CheckIfInPosition();
+            if(state != TokenState.DESTROYING)
+                CheckIfInPosition();
+            
         }
         void CheckIfInPosition()
         {
@@ -88,6 +83,7 @@ namespace proto
         public void DestroyToken()
         {
             PlayAnimation("Destroyed");
+            state = TokenState.DESTROYING;
         }
         void FullyDestroyAndRegenerate()
         {
@@ -166,7 +162,7 @@ namespace proto
         }
         void SmoothMove ()
         {
-            transform.position = Vector2.Lerp(transform.position, _targetPosition, _timeToMove);
+            transform.position = Vector2.Lerp(transform.position, _targetPosition, _swipeSpeed * Time.deltaTime);
         }
 
     }
