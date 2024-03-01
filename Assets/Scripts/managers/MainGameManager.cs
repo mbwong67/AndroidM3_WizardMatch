@@ -4,6 +4,9 @@ using UnityEngine;
 
 namespace WizardMatch
 {
+    // Handles the calling of methods and organization of objects within. 
+    // Issues method calls to appropriate objects depending on state.
+    // Also handles input.
     public class MainGameManager : MonoBehaviour
     {
         [SerializeField] public GameBoard gameBoard;
@@ -11,7 +14,7 @@ namespace WizardMatch
         [SerializeField] private GameState _gameState;
         [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
 
-        
+        private WizardToken[] _swipedTokensThisMove = new WizardToken[2];
         private Vector2 _touchScreenPosition;
         private Vector2 _pointLastTouched;
         private WizardMatchControls _controls;
@@ -29,6 +32,14 @@ namespace WizardMatch
             {
                 case GameState.READY :
                     HandleInput();
+                    break;
+                case GameState.CHECK_SWIPE :
+                    CheckSwipe();
+                    break;
+                case GameState.RETURN : 
+                    WaitUntilSwipedTokensStop(GameState.READY);
+                    break;
+                case GameState.MATCHING : 
                     break;
             }
         }
@@ -64,7 +75,7 @@ namespace WizardMatch
             if (_selectedToken && Vector2.Distance(_pointLastTouched,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta)
             {
                 WizardToken token = _selectedToken.GetComponent<WizardToken>();
-                WizardToken neighborToken;
+                WizardToken neighborToken = null;
                 // swipe right
                 if (angle < 45.0f)
                 {
@@ -101,8 +112,42 @@ namespace WizardMatch
                         token.SwapTokenPositions(token,neighborToken);
                     }
                 }
+                _swipedTokensThisMove[0] = token;
+                _swipedTokensThisMove[1] = neighborToken;
+
                 CancelGrabOfToken();
+                _gameState = GameState.CHECK_SWIPE;
         }}
+        void CheckSwipe()
+        {
+            gameBoard.likeHorizontalTokens.Clear();
+            gameBoard.likeVerticalTokens.Clear();
+            // two simple checks to make sure our tokens are both there, and aren't moving. if so, don't run checks just yet. 
+            if (!_swipedTokensThisMove[0]  || !_swipedTokensThisMove[1])
+                return;
+            if (_swipedTokensThisMove[0].tokenState == TokenState.MOVING || _swipedTokensThisMove[1].tokenState == TokenState.MOVING)
+                return;
+            
+            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[0]);
+            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]); // <-- probably won't need this
+
+            // if this swipe isn't valid, return as soon as possible.
+            if (gameBoard.likeHorizontalTokens.Count <= 1 && gameBoard.likeVerticalTokens.Count <= 1)
+            {
+                _gameState = GameState.RETURN;
+                _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
+                return;
+            }
+            _gameState = GameState.MATCHING;
+
+        }
+        void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue)
+        {
+            if (_swipedTokensThisMove[0].tokenState == TokenState.IDLE && _swipedTokensThisMove[1].tokenState == TokenState.IDLE)
+            {
+                _gameState = stateIfSoIsTrue;
+            }
+        }
         void CancelGrabOfToken()
         {
             if (_selectedToken)

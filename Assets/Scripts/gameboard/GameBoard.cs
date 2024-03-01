@@ -10,6 +10,9 @@ namespace WizardMatch
     public class GameBoard : MonoBehaviour
     {
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
+        [SerializeField] public List<WizardToken> matchingTokens = new List<WizardToken>();
+        [SerializeField] public List<WizardToken> likeVerticalTokens = new List<WizardToken>();
+        [SerializeField] public List<WizardToken> likeHorizontalTokens = new List<WizardToken>();
         [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
         [SerializeField] public Vector2 anchorPosition;
 
@@ -49,6 +52,64 @@ namespace WizardMatch
                     SetupCheckForLeftwardMatches(playFieldTokens[x,y]);
                 }
         }
+
+        #region Matching Logic
+        public void CheckTokenForMatches(WizardToken token)
+        {
+
+            int xCount = 
+                token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
+            int yCount = 
+                token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP);
+
+            // test for each match type
+            // five in a row
+            if (xCount >= 4 || yCount >= 4)
+                token.matchType = MatchType.FIVE_IN_A_ROW;
+            
+            // this one is broken. will have to fix.
+            // four in a row or cross. cross takes priority.
+            else if (xCount == 3 || yCount == 3)
+            {
+                if (xCount >= 2 && yCount >= 2)
+                    token.matchType = MatchType.CROSS;
+                else
+                    token.matchType = MatchType.FOUR_IN_A_ROW;
+            }
+            // three in a row
+            else if (xCount == 2 || yCount == 2)
+                token.matchType = MatchType.THREE_IN_A_ROW;
+            // no match
+            else
+                token.matchType = MatchType.NO_MATCH;
+
+            // if we haven't gotten a match, return gamestate RETURN 
+            if (token.matchType == MatchType.NO_MATCH)
+                return;
+
+            token.matched = true;
+
+            if (xCount > yCount)
+                likeVerticalTokens.Clear();
+            else if (yCount > xCount)
+                likeHorizontalTokens.Clear();
+
+            foreach(WizardToken neighborToken in likeHorizontalTokens)
+            {
+                neighborToken.matched = true;
+                matchingTokens.Add(neighborToken);
+            }
+            foreach(WizardToken neighborToken in likeVerticalTokens)
+            {
+                neighborToken.matched = true;
+                matchingTokens.Add(neighborToken);
+            }
+
+            matchingTokens.Add(token);
+
+        }
+
+        #endregion
 
         #region Setup Methods
         void PopulateNeighborTokens()
