@@ -30,7 +30,7 @@ namespace WizardMatch
         }
         public bool IsInPosiiton()
         {
-            return (transform.position == _targetPosition);
+            return transform.position == _targetPosition;
         }
 
     }

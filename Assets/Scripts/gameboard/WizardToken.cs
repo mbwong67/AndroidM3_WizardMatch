@@ -18,6 +18,7 @@ namespace WizardMatch
         [SerializeField] public float xSpacing; // unused
         [SerializeField] public float ySpacing; // unused
         [SerializeField] public bool matched = false;
+        [SerializeField] public bool shouldUpgrade = false;
         [SerializeField] public MatchType matchType;
 
         [SerializeField] private Vector2 _startOffset;
@@ -54,6 +55,8 @@ namespace WizardMatch
         {
             if (GetComponent<SmoothMover>().IsInPosiiton())
                 tokenState = TokenState.IDLE;
+            if (tokenState == TokenState.DESTROYING)
+                Debug.Log("something");
         }
         public void InitializeTokenAtStart(Vector2Int position, GameBoard gameBoard, float hor, float ver)
         {
@@ -101,7 +104,13 @@ namespace WizardMatch
             A.GrabTokenNeighbors();
             B.GrabTokenNeighbors();
         }
-
+        void DestroyToken()
+        {
+            if (!shouldUpgrade)
+                _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y] = null;
+            _gameBoard.RepopulateBoard();
+            Destroy(gameObject);
+        }
         public void ForceMove (Vector3 A, Vector3 B)
         {
             StartCoroutine(mover.MoveToPosition(A,B));
@@ -111,6 +120,9 @@ namespace WizardMatch
         {
             _animator.Play(animation);
         }
+        /// <summary>
+        /// Gather information about neighboring tokens.
+        /// </summary>
         public void GrabTokenNeighbors()
         {
             westNeighbor = boardPosition.x > 0 ? _gameBoard.playFieldTokens[boardPosition.x - 1, boardPosition.y] : null;
@@ -120,9 +132,15 @@ namespace WizardMatch
             northNeighbor = boardPosition.y > 0 ? _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y - 1] : null;
             southNeighbor = boardPosition.y < _gameBoard.playFieldTokens.GetLength(1) - 1 ? 
                 _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y + 1] : null;
-
         }
-                // Recursively count the neighbors of similar color in a given direction. 
+        /// <summary>
+        /// Recursively count the neighbors of similar color in a given direction. Used for checking for matches at swipe time
+        /// for it's much simpler construction.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="direction"></param>
+        /// <param name="neighborCount"></param>
+        /// <returns></returns>
         public int CountNeighborsInCertainDirection(WizardToken token, SwipeDirection direction, int neighborCount = 0)
         {
             

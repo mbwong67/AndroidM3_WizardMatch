@@ -9,6 +9,9 @@ namespace WizardMatch
     // Also handles input.
     public class MainGameManager : MonoBehaviour
     {
+        public delegate void MatchCleared();
+        public event MatchCleared OnClear;
+
         [SerializeField] public GameBoard gameBoard;
         [SerializeField] private GameObject _selectedToken;
         [SerializeField] private GameState _gameState;
@@ -37,11 +40,30 @@ namespace WizardMatch
                     CheckSwipe();
                     break;
                 case GameState.RETURN : 
-                    WaitUntilSwipedTokensStop(GameState.READY);
+                    WaitUntilSwipedTokensStop();
                     break;
                 case GameState.MATCHING : 
+                    gameBoard.BreakAndScore();
+                    break;
+                case GameState.REPOPULATING : 
+                    // WaitUntilTokenState(TokenState.IDLE,GameState.READY);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Cycle through each token and wait until all states are of the desired state. Then, transition to desired game state.
+        /// </summary>
+        /// <param name="desiredState"></param>
+        /// <param name="transitionState"></param>
+        void WaitUntilTokenState(TokenState desiredState, GameState transitionState)
+        {
+            foreach(WizardToken token in gameBoard.playFieldTokens)
+            {
+                if (token && token.tokenState != desiredState)
+                    return;
+            }
+            _gameState = transitionState;
         }
         void HandleInput()
         {
@@ -141,7 +163,7 @@ namespace WizardMatch
             _gameState = GameState.MATCHING;
 
         }
-        void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue)
+        void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue = GameState.READY)
         {
             if (_swipedTokensThisMove[0].tokenState == TokenState.IDLE && _swipedTokensThisMove[1].tokenState == TokenState.IDLE)
             {

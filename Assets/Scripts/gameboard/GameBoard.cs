@@ -15,8 +15,6 @@ namespace WizardMatch
         [SerializeField] public List<WizardToken> likeHorizontalTokens = new List<WizardToken>();
         [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
         [SerializeField] public Vector2 anchorPosition;
-
-        //[SerializeField] private GameManager _manager;
         [SerializeField] private WizardToken _tokenPrefab;
         [SerializeField][Range(0.1f,10f)] private float _horizontalSpacing = 0.0f;
         [SerializeField][Range(0.1f,10f)] private float _verticalSpacing = 0.0f;
@@ -62,27 +60,7 @@ namespace WizardMatch
             int yCount = 
                 token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP);
 
-            // test for each match type
-            // five in a row
-            if (xCount >= 4 || yCount >= 4)
-                token.matchType = MatchType.FIVE_IN_A_ROW;
-            
-            // this one is broken. will have to fix.
-            // four in a row or cross. cross takes priority.
-            else if (xCount == 3 || yCount == 3)
-            {
-                if (xCount >= 2 && yCount >= 2)
-                    token.matchType = MatchType.CROSS;
-                else
-                    token.matchType = MatchType.FOUR_IN_A_ROW;
-            }
-            // three in a row
-            else if (xCount == 2 || yCount == 2)
-                token.matchType = MatchType.THREE_IN_A_ROW;
-            // no match
-            else
-                token.matchType = MatchType.NO_MATCH;
-
+            token.matchType = GetMatchType(xCount,yCount);
             // if we haven't gotten a match, return gamestate RETURN 
             if (token.matchType == MatchType.NO_MATCH)
                 return;
@@ -104,9 +82,75 @@ namespace WizardMatch
                 neighborToken.matched = true;
                 matchingTokens.Add(neighborToken);
             }
-
+            if (token.matchType > MatchType.THREE_IN_A_ROW)
+                token.shouldUpgrade = true;
             matchingTokens.Add(token);
 
+        }
+        
+        public MatchType GetMatchType(int xCount, int yCount)
+        {
+            // takes highest priority. if we have a 5 in a row, don't consider any other possibilities
+            if (xCount >= 4 || yCount >= 4)
+                return MatchType.FIVE_IN_A_ROW;
+            
+            // this one is broken. will have to fix.
+            // four in a row or cross. cross takes priority.
+            else if (xCount >= 3 || yCount >= 3)
+            {
+                if (xCount >= 2 && yCount >= 2)
+                    return MatchType.CROSS;
+                else
+                    return MatchType.FOUR_IN_A_ROW;
+            }
+            // three in a row
+            else if (xCount == 2 || yCount == 2 )
+                return MatchType.THREE_IN_A_ROW;
+            // no match
+            else
+                return MatchType.NO_MATCH;
+        }
+
+        public void BreakAndScore()
+        {
+            foreach(WizardToken token in matchingTokens)
+            {
+                token.tokenState = TokenState.DESTROYING;
+                if (!token.shouldUpgrade)
+                    token.PlayAnimation("Destroyed");
+            }
+            matchingTokens.Clear();
+        }
+
+        public void RepopulateBoard()
+        {
+            List<Vector2Int> emptyPositions = new List<Vector2Int>();
+            for (int col = 0; col < playFieldTokens.GetLength(0); col++)
+            {
+                for (int row = 0; row < playFieldTokens.GetLength(1); row++)
+                {
+                    if (!playFieldTokens[col,row])
+                    {
+                        emptyPositions.Add(new Vector2Int(col,row));
+                    }
+                }
+            }
+            foreach(Vector2Int emptySpot in emptyPositions)
+            {
+                for (int y = emptySpot.y; y >= 0; y--)
+                {
+                    if (playFieldTokens[emptySpot.x,y])
+                    {
+                        Vector3 newPosition = playFieldTokens[emptySpot.x,y].transform.position 
+                        + new Vector3(emptySpot.x * _horizontalSpacing ,y * _verticalSpacing,0) + 
+                        (Vector3) anchorPosition;
+
+                        playFieldTokens[emptySpot.x,y].ForceMove(playFieldTokens[emptySpot.x,y].transform.position,newPosition);
+                    }
+                }
+                Debug.Log(emptySpot);
+            }
+            
         }
 
         #endregion
