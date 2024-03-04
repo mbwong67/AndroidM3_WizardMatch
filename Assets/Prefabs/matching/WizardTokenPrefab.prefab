@@ -107,6 +107,9 @@ MonoBehaviour:
   realColor: 0
   xSpacing: 0
   ySpacing: 0
+  matched: 0
+  shouldUpgrade: 0
+  matchType: 0
   _startOffset: {x: 0, y: 5}
   _gameBoard: {fileID: 0}
   _animator: {fileID: 0}
@@ -114,6 +117,8 @@ MonoBehaviour:
   southNeighbor: {fileID: 0}
   eastNeighbor: {fileID: 0}
   westNeighbor: {fileID: 0}
+  likeVerticalNeighbors: []
+  likeHorizontalNeighbors: []
   _colorAssociations:
   - {r: 1, g: 0, b: 0, a: 1}
   - {r: 0, g: 1, b: 0, a: 1}
@@ -170,7 +175,7 @@ CircleCollider2D:
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Radius: 1
+  m_Radius: 0.75
 --- !u!95 &-661076685626929651
 Animator:
   serializedVersion: 5

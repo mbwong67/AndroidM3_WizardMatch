@@ -44,9 +44,10 @@ namespace WizardMatch
                     break;
                 case GameState.MATCHING : 
                     gameBoard.BreakAndScore();
+                    _gameState = GameState.WAIT;
                     break;
-                case GameState.REPOPULATING : 
-                    // WaitUntilTokenState(TokenState.IDLE,GameState.READY);
+                case GameState.WAIT : 
+                    WaitUntilTokenState(TokenState.IDLE,GameState.READY);
                     break;
             }
         }
@@ -58,19 +59,21 @@ namespace WizardMatch
         /// <param name="transitionState"></param>
         void WaitUntilTokenState(TokenState desiredState, GameState transitionState)
         {
-            foreach(WizardToken token in gameBoard.playFieldTokens)
+            for (int col = 0; col < gameBoard.playFieldTokens.GetLength(0); col++)
             {
-                if (token && token.tokenState != desiredState)
-                    return;
+                for (int row = 0; row < gameBoard.playFieldTokens.GetLength(1); row++)
+                    if (!gameBoard.playFieldTokens[col,row] || gameBoard.playFieldTokens[col,row].tokenState != desiredState)
+                        return;
             }
             _gameState = transitionState;
         }
         void HandleInput()
         {
+
             foreach(WizardToken token in gameBoard.playFieldTokens)
             {
                 // don't handle input if any token is currently in motion. 
-                if (token.tokenState == TokenState.MOVING)
+                if (token && token.tokenState == TokenState.MOVING)
                     return;
             }
             // check to see if the point we've touched is actually a token or not.
@@ -142,8 +145,7 @@ namespace WizardMatch
         }}
         void CheckSwipe()
         {
-            gameBoard.likeHorizontalTokens.Clear();
-            gameBoard.likeVerticalTokens.Clear();
+            gameBoard.RegrabAllTokenPositions();
             // two simple checks to make sure our tokens are both there, and aren't moving. if so, don't run checks just yet. 
             if (!_swipedTokensThisMove[0]  || !_swipedTokensThisMove[1])
                 return;
@@ -151,15 +153,17 @@ namespace WizardMatch
                 return;
             
             gameBoard.CheckTokenForMatches(_swipedTokensThisMove[0]);
-            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]); // <-- probably won't need this
+            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]);
 
             // if this swipe isn't valid, return as soon as possible.
-            if (gameBoard.likeHorizontalTokens.Count <= 1 && gameBoard.likeVerticalTokens.Count <= 1)
+            if (_swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH)
             {
+                Debug.Log("returning");
                 _gameState = GameState.RETURN;
                 _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
                 return;
             }
+
             _gameState = GameState.MATCHING;
 
         }

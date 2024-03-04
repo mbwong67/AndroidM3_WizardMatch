@@ -392,6 +392,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32c0f3cee3b0e594e89f7e0bf2cf2664, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  repopulating: 0
   tokenTypes:
   - {fileID: 11400000, guid: 1b47e459f553eaf49874c59612218260, type: 2}
   - {fileID: 11400000, guid: 0e9edbcac5044a44a9f69500fe6eb06e, type: 2}
@@ -400,9 +401,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d99fbf7139c76474c89a85a25934f9a0, type: 2}
   - {fileID: 11400000, guid: ddcdbc02dc4de3b47aebe904b4363565, type: 2}
   matchingTokens: []
-  likeVerticalTokens: []
-  likeHorizontalTokens: []
+  affectedTokens: []
   anchorPosition: {x: -2.25, y: 0}
   _tokenPrefab: {fileID: 2462018282727386128, guid: df2ef65e72b63074b86f7a598c09733d, type: 3}
+  t: []
   _horizontalSpacing: 0.643
   _verticalSpacing: 0.643

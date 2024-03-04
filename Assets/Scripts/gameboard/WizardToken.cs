@@ -7,7 +7,6 @@ namespace WizardMatch
 {
     // Class responsible for most token logic.
     // Calculates it's neighbors and updates it's position on the gameboard via a gameboard reference.
-    // 
     public class WizardToken : MonoBehaviour
     {
         [SerializeField] public SwipeScriptable swipeData;
@@ -15,9 +14,10 @@ namespace WizardMatch
         [SerializeField] public TokenState tokenState;
         [SerializeField] public SmoothMover mover;
         [SerializeField] public int realColor;
-        [SerializeField] public float xSpacing; // unused
-        [SerializeField] public float ySpacing; // unused
+        [SerializeField] public float xSpacing;
+        [SerializeField] public float ySpacing;
         [SerializeField] public bool matched = false;
+        [SerializeField] public bool visited = false; // used for other matching algorithms
         [SerializeField] public bool shouldUpgrade = false;
         [SerializeField] public MatchType matchType;
 
@@ -30,33 +30,46 @@ namespace WizardMatch
         [SerializeField] public WizardToken southNeighbor;
         [SerializeField] public WizardToken eastNeighbor;
         [SerializeField] public WizardToken westNeighbor;
+        [SerializeField] public List<WizardToken> likeVerticalNeighbors = new List<WizardToken>();
+        [SerializeField] public List<WizardToken> likeHorizontalNeighbors = new List<WizardToken>();
+
     #endregion
     
     #region Temporary
-    [SerializeField] private Color[] _colorAssociations = 
-    {
-        Color.red,
-        Color.green,
-        Color.blue,
-        Color.white,    
-        Color.magenta,
-        Color.yellow,
-        Color.gray,
-        Color.black
-    };
+        [SerializeField] private Color[] _colorAssociations = 
+        {
+            Color.red,
+            Color.green,
+            Color.blue,
+            Color.white,    
+            Color.magenta,
+            Color.yellow,
+            Color.gray,
+            Color.black
+        };
     
     #endregion
 
+        void OnEnable()
+        {
+            GameBoard.UpdateBoardPosition += UpdateBoardPosition;
+        }
+        void OnDisable()
+        {
+            GameBoard.UpdateBoardPosition -= UpdateBoardPosition;
+        }
         void Update()
         {
             MonitorState();
         }
+        void UpdateBoardPosition()
+        {
+            _gameBoard.playFieldTokens[boardPosition.x,boardPosition.y] = this;
+        }
         void MonitorState()
         {
-            if (GetComponent<SmoothMover>().IsInPosiiton())
+            if (mover.IsInPosiiton())
                 tokenState = TokenState.IDLE;
-            if (tokenState == TokenState.DESTROYING)
-                Debug.Log("something");
         }
         public void InitializeTokenAtStart(Vector2Int position, GameBoard gameBoard, float hor, float ver)
         {
@@ -106,19 +119,47 @@ namespace WizardMatch
         }
         void DestroyToken()
         {
-            if (!shouldUpgrade)
-                _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y] = null;
             _gameBoard.RepopulateBoard();
-            Destroy(gameObject);
+            // if (!shouldUpgrade)
+                Destroy(gameObject);
         }
         public void ForceMove (Vector3 A, Vector3 B)
         {
             StartCoroutine(mover.MoveToPosition(A,B));
         }
+        public void ForceMove (Vector2Int boardPosition)
+        {
+            float posX = xSpacing * boardPosition.x + _gameBoard.anchorPosition.x;
+            float posY = ySpacing * -boardPosition.y + _gameBoard.anchorPosition.y;
+            Vector3 newPosition = new Vector3(posX,posY,0);
+            StartCoroutine(mover.MoveToPosition(transform.position,newPosition));
+        }
+
+        /// <summary>
+        /// Physically moves token into an empty position on the board. Position MUST be empty, or will return early. Does not update neighbors of other tokens on the board.
+        /// </summary>
+        /// <param name="newBoardPosition"></param>
+        public void MoveToEmptyBoardPosition(Vector2Int newBoardPosition)
+        {
+            if (_gameBoard.playFieldTokens[newBoardPosition.x,newBoardPosition.y])
+                return;
+            _gameBoard.playFieldTokens[boardPosition.x,boardPosition.y] = null;
+            boardPosition = newBoardPosition;
+
+            UpdateBoardPosition();
+
+            float posX = xSpacing * newBoardPosition.x + _gameBoard.anchorPosition.x;
+            float posY = ySpacing * -newBoardPosition.y + _gameBoard.anchorPosition.y;
+            Vector3 newPosition = new Vector3(posX,posY,0);
+
+            ForceMove(transform.position,newPosition);
+        }
 
         public void PlayAnimation(string animation)
         {
-            _animator.Play(animation);
+            if (_animator != null)
+                _animator.Play(animation);
+            return;
         }
         /// <summary>
         /// Gather information about neighboring tokens.
@@ -158,7 +199,7 @@ namespace WizardMatch
                         neighbor = _gameBoard.playFieldTokens[token.boardPosition.x,token.boardPosition.y - 1];
                         if (neighbor.matched)
                             return neighborCount;
-                        _gameBoard.likeVerticalTokens.Add(neighbor);
+                        likeVerticalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -169,7 +210,7 @@ namespace WizardMatch
                         neighbor = _gameBoard.playFieldTokens[token.boardPosition.x,token.boardPosition.y + 1];
                         if (neighbor.matched)
                             return neighborCount;
-                        _gameBoard.likeVerticalTokens.Add(neighbor);
+                        likeVerticalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -180,7 +221,7 @@ namespace WizardMatch
                         neighbor = _gameBoard.playFieldTokens[token.boardPosition.x - 1,token.boardPosition.y];
                         if (neighbor.matched)
                             return neighborCount;
-                        _gameBoard.likeHorizontalTokens.Add(neighbor);
+                        likeHorizontalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;
@@ -192,7 +233,7 @@ namespace WizardMatch
                         neighbor = _gameBoard.playFieldTokens[token.boardPosition.x + 1,token.boardPosition.y];
                         if (neighbor.matched)
                             return neighborCount;
-                        _gameBoard.likeHorizontalTokens.Add(neighbor);
+                        likeHorizontalNeighbors.Add(neighbor);
                         neighborCount = CountNeighborsInCertainDirection(neighbor,direction,neighborCount + 1);
                     }
                     break;

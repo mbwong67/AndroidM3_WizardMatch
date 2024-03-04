@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace WizardMatch
 {
-    public struct MatchData // <-- unknown if needed yet
+    public struct ParentTokenMatchData // <-- unknown if needed yet
     {
         List<WizardToken> affectedTokens;
         MatchType matchType;
@@ -46,7 +46,7 @@ namespace WizardMatch
         READY,
         CHECK_SWIPE,
         MATCHING,
-        REPOPULATING,
+        WAIT,
         RETURN,
         NONE
     };

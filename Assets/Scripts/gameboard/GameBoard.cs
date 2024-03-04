@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace WizardMatch
@@ -9,13 +8,19 @@ namespace WizardMatch
     // calculates positions, matches, and relays state information with the game manager. 
     public class GameBoard : MonoBehaviour
     {
+        [SerializeField] public bool repopulating = false;
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
         [SerializeField] public List<WizardToken> matchingTokens = new List<WizardToken>();
-        [SerializeField] public List<WizardToken> likeVerticalTokens = new List<WizardToken>();
-        [SerializeField] public List<WizardToken> likeHorizontalTokens = new List<WizardToken>();
+        [SerializeField] public List<WizardToken> affectedTokens = new List<WizardToken>();
         [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
         [SerializeField] public Vector2 anchorPosition;
+
+        public delegate void RecalculateBoardPosition();
+        public static event RecalculateBoardPosition UpdateBoardPosition;
+
+        
         [SerializeField] private WizardToken _tokenPrefab;
+        [SerializeField] private List<Vector2Int> t = new List<Vector2Int>();
         [SerializeField][Range(0.1f,10f)] private float _horizontalSpacing = 0.0f;
         [SerializeField][Range(0.1f,10f)] private float _verticalSpacing = 0.0f;
 
@@ -23,38 +28,22 @@ namespace WizardMatch
         {
             InitializeBoard();
         }
-        void Update(){}
-        void InitializeBoard()
+        void Update()
         {
-            if (!_tokenPrefab)
+            int count = 0;
+            for (int i = 0; i < playFieldTokens.GetLength(0); i++)
             {
-                Debug.Log("ERROR : " + gameObject.name + " : _tokenPrefab not set! Aborting...");
-                Destroy(gameObject);
+                for (int j = 0; j < playFieldTokens.GetLength(1); j++)
+                    if (playFieldTokens[i,j])
+                        count++;
             }
-            for (int col = 0; col < playFieldTokens.GetLength(0); col++)
-            {
-                for (int row = 0; row < playFieldTokens.GetLength(1); row++)
-                {
-                    Vector2 offset = anchorPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing);
-                    WizardToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
-                    curTok.swipeData = tokenTypes[(int) Mathf.Floor(Random.Range(0,tokenTypes.Count))];
-                    curTok.InitializeTokenAtStart(new Vector2Int(col,row), GetComponent<GameBoard>(),_horizontalSpacing,_verticalSpacing);
-                    playFieldTokens[col,row] = curTok;
-                }
-            }
-            PopulateNeighborTokens();
-            for (int x = 0 ; x < playFieldTokens.GetLength(0); x++)
-                for (int y = 0 ; y < playFieldTokens.GetLength(1); y++)
-                {
-                    SetupCheckForUpwardMatches(playFieldTokens[x,y]);
-                    SetupCheckForLeftwardMatches(playFieldTokens[x,y]);
-                }
+            Debug.Log(count);
         }
+
 
         #region Matching Logic
         public void CheckTokenForMatches(WizardToken token)
         {
-
             int xCount = 
                 token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
             int yCount = 
@@ -67,17 +56,21 @@ namespace WizardMatch
 
             token.matched = true;
 
-            if (xCount > yCount)
-                likeVerticalTokens.Clear();
-            else if (yCount > xCount)
-                likeHorizontalTokens.Clear();
+            if (xCount > yCount || yCount < 1)
+            {
+                token.likeVerticalNeighbors.Clear();
+            }
+            if (yCount > xCount || xCount < 1)
+            {
+                token.likeHorizontalNeighbors.Clear();
+            }
 
-            foreach(WizardToken neighborToken in likeHorizontalTokens)
+            foreach(WizardToken neighborToken in token.likeHorizontalNeighbors)
             {
                 neighborToken.matched = true;
                 matchingTokens.Add(neighborToken);
             }
-            foreach(WizardToken neighborToken in likeVerticalTokens)
+            foreach(WizardToken neighborToken in token.likeVerticalNeighbors)
             {
                 neighborToken.matched = true;
                 matchingTokens.Add(neighborToken);
@@ -90,25 +83,27 @@ namespace WizardMatch
         
         public MatchType GetMatchType(int xCount, int yCount)
         {
+            MatchType ret;
+
             // takes highest priority. if we have a 5 in a row, don't consider any other possibilities
             if (xCount >= 4 || yCount >= 4)
-                return MatchType.FIVE_IN_A_ROW;
+                ret = MatchType.FIVE_IN_A_ROW;
             
-            // this one is broken. will have to fix.
-            // four in a row or cross. cross takes priority.
-            else if (xCount >= 3 || yCount >= 3)
+            else if (xCount == 3 || yCount == 3)
             {
-                if (xCount >= 2 && yCount >= 2)
-                    return MatchType.CROSS;
-                else
-                    return MatchType.FOUR_IN_A_ROW;
+                ret = MatchType.FOUR_IN_A_ROW;
             }
+
+            else if (xCount >= 2 && yCount >= 2)
+                ret = MatchType.CROSS;
             // three in a row
             else if (xCount == 2 || yCount == 2 )
-                return MatchType.THREE_IN_A_ROW;
+                ret =  MatchType.THREE_IN_A_ROW;
             // no match
             else
-                return MatchType.NO_MATCH;
+                ret = MatchType.NO_MATCH;
+            
+            return ret;
         }
 
         public void BreakAndScore()
@@ -116,46 +111,150 @@ namespace WizardMatch
             foreach(WizardToken token in matchingTokens)
             {
                 token.tokenState = TokenState.DESTROYING;
-                if (!token.shouldUpgrade)
+                // if (!token.shouldUpgrade)
+                // {
                     token.PlayAnimation("Destroyed");
+                    playFieldTokens[token.boardPosition.x,token.boardPosition.y] = null;
+
+                    t.Add(new Vector2Int(token.boardPosition.x,token.boardPosition.y));
+                // }
             }
             matchingTokens.Clear();
         }
+        #endregion
 
+        #region Repopulating Logic
         public void RepopulateBoard()
+        {
+            List<Vector2Int> lowestPositions = FindLowestEmptyPositions();
+
+            foreach(Vector2Int lowPosition in lowestPositions)
+            {
+                SnapToLowest(lowPosition,lowPosition);
+            }
+            var emptyPositions = FindEmptyPositions();
+            foreach(Vector2Int emptyPosition in emptyPositions)
+            {
+                CreateTokenAtPoint(emptyPosition.x,emptyPosition.y);
+            }
+            SnapAllTokensToAppropriatePositions();
+        }
+
+        public void RegrabAllTokenPositions()
+        {
+            UpdateBoardPosition();
+            PopulateNeighborTokens();
+            foreach(WizardToken token in playFieldTokens)
+            {
+                token.GrabTokenNeighbors();
+            }
+        }
+        void SnapToLowest(Vector2Int snapPos, Vector2Int curPosition)
+        {
+            if (curPosition.y < 0)
+
+                return;
+            int posX = curPosition.x;
+            int posY = curPosition.y;
+            // if there is a token at this position
+            if (playFieldTokens[posX,posY])
+            {
+                WizardToken affectedToken = playFieldTokens[posX,posY];
+                affectedToken.MoveToEmptyBoardPosition(snapPos);
+                affectedTokens.Add(affectedToken);
+                Vector2Int newSnapPosition = new Vector2Int(snapPos.x,snapPos.y - 1);
+                SnapToLowest(newSnapPosition,newSnapPosition);
+            }
+            else
+                SnapToLowest(snapPos,new Vector2Int(posX,posY - 1));
+        }
+
+        List<Vector2Int> FindEmptyPositions()
         {
             List<Vector2Int> emptyPositions = new List<Vector2Int>();
             for (int col = 0; col < playFieldTokens.GetLength(0); col++)
             {
                 for (int row = 0; row < playFieldTokens.GetLength(1); row++)
                 {
-                    if (!playFieldTokens[col,row])
+                    if (playFieldTokens[col,row] == null)
                     {
                         emptyPositions.Add(new Vector2Int(col,row));
                     }
                 }
             }
-            foreach(Vector2Int emptySpot in emptyPositions)
-            {
-                for (int y = emptySpot.y; y >= 0; y--)
-                {
-                    if (playFieldTokens[emptySpot.x,y])
-                    {
-                        Vector3 newPosition = playFieldTokens[emptySpot.x,y].transform.position 
-                        + new Vector3(emptySpot.x * _horizontalSpacing ,y * _verticalSpacing,0) + 
-                        (Vector3) anchorPosition;
+            return emptyPositions;
+        }
+        List<Vector2Int> FindLowestEmptyPositions()
+        {
+            List<Vector2Int> emptyPositions = FindEmptyPositions();
+            List<Vector2Int> lowestPositions = new List<Vector2Int>();
 
-                        playFieldTokens[emptySpot.x,y].ForceMove(playFieldTokens[emptySpot.x,y].transform.position,newPosition);
-                    }
+            for (int i = 0; i < playFieldTokens.GetLength(0); i++)
+            {
+                var tempList = emptyPositions.FindAll(s => s.x == i); // find all positions whose x value matches the index
+                if (tempList.Count > 0)
+                {
+                    Vector2Int add = PruneLowestPositions(tempList);
+                    lowestPositions.Add(PruneLowestPositions(tempList));
                 }
-                Debug.Log(emptySpot);
             }
             
+            return lowestPositions;
         }
 
+        Vector2Int PruneLowestPositions(List<Vector2Int> list)
+        {
+            Vector2Int ret = new Vector2Int(-1,-1);
+            int highestY = 0;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].y > highestY)
+                {
+                    ret = list[i];
+                }
+            }
+            return ret;
+        }
+
+        public void SnapAllTokensToAppropriatePositions()
+        {
+            foreach(WizardToken token in playFieldTokens)
+                token.ForceMove(token.boardPosition);
+        }
+        
         #endregion
 
         #region Setup Methods
+        void CreateTokenAtPoint(int col, int row)
+        {
+            Vector2 offset = anchorPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing);
+            WizardToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
+            curTok.swipeData = tokenTypes[(int) Mathf.Floor(Random.Range(0,tokenTypes.Count))];
+            curTok.InitializeTokenAtStart(new Vector2Int(col,row), GetComponent<GameBoard>(),_horizontalSpacing,_verticalSpacing);
+            playFieldTokens[col,row] = curTok;
+        }
+        void InitializeBoard()
+        {
+            if (!_tokenPrefab)
+            {
+                Debug.LogError("ERROR : " + gameObject.name + " : _tokenPrefab not set! Aborting...");
+                Destroy(gameObject);
+            }
+            for (int col = 0; col < playFieldTokens.GetLength(0); col++)
+            {
+                for (int row = 0; row < playFieldTokens.GetLength(1); row++)
+                {
+                    CreateTokenAtPoint(col,row);
+                }
+            }
+            PopulateNeighborTokens();
+            for (int x = 0 ; x < playFieldTokens.GetLength(0); x++)
+                for (int y = 0 ; y < playFieldTokens.GetLength(1); y++)
+                {
+                    SetupCheckForUpwardMatches(playFieldTokens[x,y]);
+                    SetupCheckForLeftwardMatches(playFieldTokens[x,y]);
+                }
+        }
         void PopulateNeighborTokens()
         {
             for (int x = 0; x < playFieldTokens.GetLength(0); x++)
