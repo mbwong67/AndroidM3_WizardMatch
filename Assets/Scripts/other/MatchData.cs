@@ -11,6 +11,7 @@ namespace WizardMatch
     {
         IDLE,
         MOVING,
+        SWIPING,
         FALLING,
         DESTROYING
     }

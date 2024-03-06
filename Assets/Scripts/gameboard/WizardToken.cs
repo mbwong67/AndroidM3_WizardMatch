@@ -69,7 +69,10 @@ namespace WizardMatch
         void MonitorState()
         {
             if (mover.IsInPosiiton())
+            {
                 tokenState = TokenState.IDLE;
+                ForceMove(boardPosition);
+            }
         }
         public void InitializeTokenAtStart(Vector2Int position, GameBoard gameBoard, float hor, float ver)
         {

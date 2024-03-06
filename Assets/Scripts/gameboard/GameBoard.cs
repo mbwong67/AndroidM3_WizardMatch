@@ -11,14 +11,14 @@ namespace WizardMatch
         [SerializeField] public bool repopulating = false;
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
         [SerializeField] public List<WizardToken> matchingTokens = new List<WizardToken>();
-        [SerializeField] public List<WizardToken> affectedTokens = new List<WizardToken>();
+        // tokens in this list are there specifically to check for matches after a new board has been filled.
+        [SerializeField] public List<WizardToken> tokensToCheckAfterMatch = new List<WizardToken>();
         [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
         [SerializeField] public Vector2 anchorPosition;
 
         public delegate void RecalculateBoardPosition();
         public static event RecalculateBoardPosition UpdateBoardPosition;
 
-        
         [SerializeField] private WizardToken _tokenPrefab;
         [SerializeField] private List<Vector2Int> t = new List<Vector2Int>();
         [SerializeField][Range(0.1f,10f)] private float _horizontalSpacing = 0.0f;
@@ -44,6 +44,9 @@ namespace WizardMatch
         #region Matching Logic
         public void CheckTokenForMatches(WizardToken token)
         {
+            token.likeHorizontalNeighbors.Clear();
+            token.likeVerticalNeighbors.Clear();
+
             int xCount = 
                 token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
             int yCount = 
@@ -108,6 +111,7 @@ namespace WizardMatch
 
         public void BreakAndScore()
         {
+            tokensToCheckAfterMatch.Clear();
             foreach(WizardToken token in matchingTokens)
             {
                 token.tokenState = TokenState.DESTROYING;
@@ -136,18 +140,15 @@ namespace WizardMatch
             foreach(Vector2Int emptyPosition in emptyPositions)
             {
                 CreateTokenAtPoint(emptyPosition.x,emptyPosition.y);
+                tokensToCheckAfterMatch.Add(playFieldTokens[emptyPosition.x,emptyPosition.y]);
             }
             SnapAllTokensToAppropriatePositions();
         }
 
-        public void RegrabAllTokenPositions()
+        public void ResetTokens()
         {
             UpdateBoardPosition();
             PopulateNeighborTokens();
-            foreach(WizardToken token in playFieldTokens)
-            {
-                token.GrabTokenNeighbors();
-            }
         }
         void SnapToLowest(Vector2Int snapPos, Vector2Int curPosition)
         {
@@ -156,12 +157,14 @@ namespace WizardMatch
                 return;
             int posX = curPosition.x;
             int posY = curPosition.y;
-            // if there is a token at this position
+            // if there is a token at this position, add it to the list
+            // of tokens to check after the match. these will need to 
+            // be checked for matches. 
             if (playFieldTokens[posX,posY])
             {
                 WizardToken affectedToken = playFieldTokens[posX,posY];
                 affectedToken.MoveToEmptyBoardPosition(snapPos);
-                affectedTokens.Add(affectedToken);
+                tokensToCheckAfterMatch.Add(affectedToken);
                 Vector2Int newSnapPosition = new Vector2Int(snapPos.x,snapPos.y - 1);
                 SnapToLowest(newSnapPosition,newSnapPosition);
             }

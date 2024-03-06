@@ -66,6 +66,7 @@ namespace WizardMatch
                         return;
             }
             _gameState = transitionState;
+            gameBoard.ResetTokens();
         }
         void HandleInput()
         {
@@ -145,7 +146,7 @@ namespace WizardMatch
         }}
         void CheckSwipe()
         {
-            gameBoard.RegrabAllTokenPositions();
+            gameBoard.ResetTokens();
             // two simple checks to make sure our tokens are both there, and aren't moving. if so, don't run checks just yet. 
             if (!_swipedTokensThisMove[0]  || !_swipedTokensThisMove[1])
                 return;
