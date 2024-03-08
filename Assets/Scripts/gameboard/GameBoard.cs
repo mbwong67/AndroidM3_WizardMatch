@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace WizardMatch
@@ -8,21 +9,21 @@ namespace WizardMatch
     // calculates positions, matches, and relays state information with the game manager. 
     public class GameBoard : MonoBehaviour
     {
-        [SerializeField] public bool repopulating = false;
-        [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
-        [SerializeField] public List<WizardToken> matchingTokens = new List<WizardToken>();
-        // tokens in this list are there specifically to check for matches after a new board has been filled.
-        [SerializeField] public List<WizardToken> tokensToCheckAfterMatch = new List<WizardToken>();
-        [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
-        [SerializeField] public Vector2 anchorPosition;
-
         public delegate void RecalculateBoardPosition();
         public static event RecalculateBoardPosition UpdateBoardPosition;
 
+        [SerializeField] public Vector2 anchorPosition;
+        [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
+        [SerializeField] public List<WizardToken> matchedTokens = new List<WizardToken>();
+        // tokens in this list are there specifically to check for matches after a new board has been filled.
+        [SerializeField] public List<WizardToken> tokensToCheckAfterMatch = new List<WizardToken>();
+        [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
+        [SerializeField] public bool boardIsStill = false;
+
         [SerializeField] private WizardToken _tokenPrefab;
-        [SerializeField] private List<Vector2Int> t = new List<Vector2Int>();
         [SerializeField][Range(0.1f,10f)] private float _horizontalSpacing = 0.0f;
         [SerializeField][Range(0.1f,10f)] private float _verticalSpacing = 0.0f;
+
 
         void Awake()
         {
@@ -34,12 +35,31 @@ namespace WizardMatch
             for (int i = 0; i < playFieldTokens.GetLength(0); i++)
             {
                 for (int j = 0; j < playFieldTokens.GetLength(1); j++)
+                {
                     if (playFieldTokens[i,j])
                         count++;
+                    if (playFieldTokens[i,j] && playFieldTokens[i,j].tokenState == TokenState.IDLE)
+                        boardIsStill = true;
+                    else
+                        boardIsStill = false;
+                }
             }
             Debug.Log(count);
+
         }
 
+        public bool CheckWholeBoardForMatches()
+        {
+            foreach(WizardToken token in playFieldTokens)
+            {
+                CheckTokenForMatches(token);
+                if (token.matchType != MatchType.NO_MATCH)
+                    matchedTokens.Add(token);
+            }
+            if (matchedTokens.Count > 0)
+                return true;
+            return false;
+        }
 
         #region Matching Logic
         public void CheckTokenForMatches(WizardToken token)
@@ -52,7 +72,7 @@ namespace WizardMatch
             int yCount = 
                 token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP);
 
-            token.matchType = GetMatchType(xCount,yCount);
+            token.matchType = BoardSolver.GetMatchType(xCount,yCount);
             // if we haven't gotten a match, return gamestate RETURN 
             if (token.matchType == MatchType.NO_MATCH)
                 return;
@@ -71,59 +91,32 @@ namespace WizardMatch
             foreach(WizardToken neighborToken in token.likeHorizontalNeighbors)
             {
                 neighborToken.matched = true;
-                matchingTokens.Add(neighborToken);
+                matchedTokens.Add(neighborToken);
             }
             foreach(WizardToken neighborToken in token.likeVerticalNeighbors)
             {
                 neighborToken.matched = true;
-                matchingTokens.Add(neighborToken);
+                matchedTokens.Add(neighborToken);
             }
             if (token.matchType > MatchType.THREE_IN_A_ROW)
                 token.shouldUpgrade = true;
-            matchingTokens.Add(token);
+            matchedTokens.Add(token);
 
-        }
-        
-        public MatchType GetMatchType(int xCount, int yCount)
-        {
-            MatchType ret;
-
-            // takes highest priority. if we have a 5 in a row, don't consider any other possibilities
-            if (xCount >= 4 || yCount >= 4)
-                ret = MatchType.FIVE_IN_A_ROW;
-            
-            else if (xCount == 3 || yCount == 3)
-            {
-                ret = MatchType.FOUR_IN_A_ROW;
-            }
-
-            else if (xCount >= 2 && yCount >= 2)
-                ret = MatchType.CROSS;
-            // three in a row
-            else if (xCount == 2 || yCount == 2 )
-                ret =  MatchType.THREE_IN_A_ROW;
-            // no match
-            else
-                ret = MatchType.NO_MATCH;
-            
-            return ret;
         }
 
         public void BreakAndScore()
         {
             tokensToCheckAfterMatch.Clear();
-            foreach(WizardToken token in matchingTokens)
+            foreach(WizardToken token in matchedTokens)
             {
                 token.tokenState = TokenState.DESTROYING;
                 // if (!token.shouldUpgrade)
                 // {
                     token.PlayAnimation("Destroyed");
                     playFieldTokens[token.boardPosition.x,token.boardPosition.y] = null;
-
-                    t.Add(new Vector2Int(token.boardPosition.x,token.boardPosition.y));
                 // }
             }
-            matchingTokens.Clear();
+            matchedTokens.Clear();
         }
         #endregion
 
@@ -131,7 +124,7 @@ namespace WizardMatch
         public void RepopulateBoard()
         {
             List<Vector2Int> lowestPositions = FindLowestEmptyPositions();
-
+    
             foreach(Vector2Int lowPosition in lowestPositions)
             {
                 SnapToLowest(lowPosition,lowPosition);
@@ -143,6 +136,48 @@ namespace WizardMatch
                 tokensToCheckAfterMatch.Add(playFieldTokens[emptyPosition.x,emptyPosition.y]);
             }
             SnapAllTokensToAppropriatePositions();
+        }
+        public void Cascade()
+        {
+            Debug.Log("in cascade, mf");
+            ParentTokenMatchData[] parentTokens = new ParentTokenMatchData[64];
+            boardIsStill = false;
+            
+            // flood fill each token and return their like tokens and parent token into parentData. add it to a list
+            // of parent tokens to check for the highest match among them. 
+            int count = 0;
+            foreach(WizardToken token in tokensToCheckAfterMatch)
+            {
+                ParentTokenMatchData parentData = BoardSolver.FloodMatchTokens(token);
+                parentTokens[count] = parentData;
+                count++;
+            }
+
+            // then, with the list of parent tokens in hand, loop through each of their affected tokens and determine
+            // the highest match amongst them. 
+            for (int i = 0; i < count; i++)
+            {
+                BoardSolver.DetermineParentTokenMatchType(ref parentTokens[i], out MatchType highestMatchType);
+                if (highestMatchType != MatchType.NO_MATCH)
+                {
+                    matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeHorizontalNeighbors);
+                    matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeVerticalNeighbors);
+                    matchedTokens.Add(parentTokens[i].highestScoringToken);
+                    Debug.Log("Parent token for this match : " + parentTokens[i].highestScoringToken.boardPosition);
+                }    
+            }
+            if (matchedTokens.Count > 0)
+            {
+                BreakAndScore();
+            }
+            for (int x = 0; x < playFieldTokens.GetLength(0); x++)
+            {
+                for (int y = 0; y < playFieldTokens.GetLength(1); y++)
+                {
+                    if (playFieldTokens[x,y])
+                        playFieldTokens[x,y].visited = false;
+                }
+            }
         }
 
         public void ResetTokens()
@@ -218,12 +253,12 @@ namespace WizardMatch
             }
             return ret;
         }
-
         public void SnapAllTokensToAppropriatePositions()
         {
             foreach(WizardToken token in playFieldTokens)
                 token.ForceMove(token.boardPosition);
         }
+
         
         #endregion
 

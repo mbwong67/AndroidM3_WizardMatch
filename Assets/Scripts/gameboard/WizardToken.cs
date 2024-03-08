@@ -68,7 +68,7 @@ namespace WizardMatch
         }
         void MonitorState()
         {
-            if (mover.IsInPosiiton())
+            if (mover.IsInPosiiton() && tokenState != TokenState.DESTROYING)
             {
                 tokenState = TokenState.IDLE;
                 ForceMove(boardPosition);

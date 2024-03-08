@@ -47,8 +47,23 @@ namespace WizardMatch
                     _gameState = GameState.WAIT;
                     break;
                 case GameState.WAIT : 
-                    WaitUntilTokenState(TokenState.IDLE,GameState.READY);
+                    WaitUntilTokenState(TokenState.IDLE,GameState.CASCADE);
                     break;
+                case GameState.CASCADE :
+                    if (gameBoard.boardIsStill)
+                        gameBoard.Cascade();
+                    WaitUntilTokenState(TokenState.IDLE,GameState.FINAL_CHECK);
+                    break;
+                case GameState.FINAL_CHECK :
+                    
+                    if (gameBoard.CheckWholeBoardForMatches())
+                    {
+                        _gameState = GameState.CASCADE;
+                    }
+                    else
+                        _gameState = GameState.READY;
+                    break;
+
             }
         }
 

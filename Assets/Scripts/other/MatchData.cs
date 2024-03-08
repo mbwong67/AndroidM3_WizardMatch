@@ -1,11 +1,25 @@
 using System.Collections.Generic;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 namespace WizardMatch
 {
     public struct ParentTokenMatchData // <-- unknown if needed yet
     {
-        List<WizardToken> affectedTokens;
-        MatchType matchType;
+        public WizardToken parentToken;
+        public WizardToken highestScoringToken;
+        public List<WizardToken> affectedTokens;
+        public MatchType matchType;
+        public int count;
+        
+        public ParentTokenMatchData(WizardToken parentToken,List<WizardToken> list, MatchType matchType = MatchType.NO_MATCH )
+        {
+            this.parentToken = parentToken;
+            highestScoringToken = this.parentToken;
+            this.matchType = matchType;
+
+            affectedTokens = list;
+            count = 0;
+        }
     }
     public enum TokenState
     {
@@ -47,8 +61,10 @@ namespace WizardMatch
         READY,
         CHECK_SWIPE,
         MATCHING,
+        CASCADE,
         WAIT,
         RETURN,
+        FINAL_CHECK,
         NONE
     };
     /// <summary>
@@ -65,20 +81,33 @@ namespace WizardMatch
         public static int[] NumOfDirectionsTraveled = {0,0,0,0};
         public static Queue<SwipeDirection> path = new Queue<SwipeDirection>();
 
-        private static List<WizardToken> _matchingTokens = new List<WizardToken>();
-        public static List<WizardToken> matchingTokens {get { return _matchingTokens; } private set { _matchingTokens = value;} }
+        private static List<WizardToken> _likeTokens = new List<WizardToken>();
+        public static List<WizardToken> likeTokens {get { return _likeTokens; } private set { _likeTokens = value;} }
 
         /// <summary>
-        /// Find the shape and tokens of a particular match (if any is present). 
+        /// Find all like colors of a particular token.
         /// </summary>
         /// <param name="token"></param>
         /// <param name="currentDepth"></param>
         /// <param name="lastTraveledDirection"></param>
         /// <returns></returns>
-        public static void FindMatchesStartingAtToken(WizardToken token, int currentDepth = 0, SwipeDirection lastTraveledDirection = SwipeDirection.NONE)
+        public static ParentTokenMatchData FloodMatchTokens(WizardToken token)
         {
             // if this token has already been declared a match, return immediately.
-            if (token.matched)
+            List<WizardToken> floodTokens = new List<WizardToken>();
+            ParentTokenMatchData ret = new ParentTokenMatchData(token,floodTokens);
+
+            FloodMatchTokensHelper(token,ret);
+            ret.affectedTokens.AddRange(_likeTokens);
+            ret.count = _likeTokens.Count;
+            _likeTokens.Clear();
+            return ret;
+
+
+        }
+        private static void FloodMatchTokensHelper(WizardToken token,ParentTokenMatchData list, SwipeDirection lastTraveledDirection = SwipeDirection.NONE)
+        {
+            if (token.visited)
                 return;
             switch(lastTraveledDirection) 
             {
@@ -89,71 +118,144 @@ namespace WizardMatch
                     //  
                     if (token.northNeighbor && token.northNeighbor.realColor == token.realColor)
                     {
+                        
                         path.Enqueue(SwipeDirection.UP);
-                        NumOfDirectionsTraveled[0]++;
-                        token.matched = true;
-                        _matchingTokens.Add(token);
-                        Debug.Log("going up");
-                        FindMatchesStartingAtToken(token.northNeighbor,currentDepth++,SwipeDirection.UP);
-                        FindMatchesStartingAtToken(token.northNeighbor,currentDepth++,SwipeDirection.LEFT);
-                        FindMatchesStartingAtToken(token.northNeighbor,currentDepth++,SwipeDirection.RIGHT);
+                        _likeTokens.Add(token);
+                        token.visited = true;
+
+                        FloodMatchTokensHelper(token.northNeighbor,list,SwipeDirection.UP);
+                        FloodMatchTokensHelper(token.northNeighbor,list,SwipeDirection.LEFT);
+                        FloodMatchTokensHelper(token.northNeighbor,list,SwipeDirection.RIGHT);
                     }
                     return;
                 case SwipeDirection.DOWN :
                     if (token.southNeighbor && token.southNeighbor.realColor == token.realColor)
                     {
                         path.Enqueue(SwipeDirection.DOWN);
-                        NumOfDirectionsTraveled[2]++;
-                        token.matched = true;
-                        _matchingTokens.Add(token);
-                        Debug.Log("going down");
+                        _likeTokens.Add(token);
+                        token.visited = true;
                         
-                        FindMatchesStartingAtToken(token.southNeighbor,currentDepth++,SwipeDirection.DOWN);
-                        FindMatchesStartingAtToken(token.southNeighbor,currentDepth++,SwipeDirection.LEFT);
-                        FindMatchesStartingAtToken(token.southNeighbor,currentDepth++,SwipeDirection.RIGHT);
+                        FloodMatchTokensHelper(token.southNeighbor,list,SwipeDirection.DOWN);
+                        FloodMatchTokensHelper(token.southNeighbor,list,SwipeDirection.LEFT);
+                        FloodMatchTokensHelper(token.southNeighbor,list,SwipeDirection.RIGHT);
                     }
                     return;
                 case SwipeDirection.LEFT :
                     if (token.westNeighbor && token.westNeighbor.realColor == token.realColor)
                     {
                         path.Enqueue(SwipeDirection.LEFT);
-                        NumOfDirectionsTraveled[1]++;
-                        token.matched = true;
-                        _matchingTokens.Add(token);
-                        Debug.Log("going left");
-                        FindMatchesStartingAtToken(token.westNeighbor,currentDepth++,SwipeDirection.UP);
-                        FindMatchesStartingAtToken(token.westNeighbor,currentDepth++,SwipeDirection.LEFT);
-                        FindMatchesStartingAtToken(token.westNeighbor,currentDepth++,SwipeDirection.DOWN);
+                        _likeTokens.Add(token);
+                        token.visited = true;
+
+                        FloodMatchTokensHelper(token.westNeighbor,list,SwipeDirection.UP);
+                        FloodMatchTokensHelper(token.westNeighbor,list,SwipeDirection.LEFT);
+                        FloodMatchTokensHelper(token.westNeighbor,list,SwipeDirection.DOWN);
                     }
                     return;
                 case SwipeDirection.RIGHT :
                     if (token.eastNeighbor && token.eastNeighbor.realColor == token.realColor)
                     {
                         path.Enqueue(SwipeDirection.RIGHT);
-                        NumOfDirectionsTraveled[3]++;
-                        token.matched = true;
-                        _matchingTokens.Add(token);
-                        Debug.Log("going right");
-                        FindMatchesStartingAtToken(token.eastNeighbor,currentDepth++,SwipeDirection.UP);
-                        FindMatchesStartingAtToken(token.eastNeighbor,currentDepth++,SwipeDirection.RIGHT);
-                        FindMatchesStartingAtToken(token.eastNeighbor,currentDepth++,SwipeDirection.DOWN);
+                        _likeTokens.Add(token);
+                        token.visited = true;
+                        FloodMatchTokensHelper(token.eastNeighbor,list,SwipeDirection.UP);
+                        FloodMatchTokensHelper(token.eastNeighbor,list,SwipeDirection.RIGHT);
+                        FloodMatchTokensHelper(token.eastNeighbor,list,SwipeDirection.DOWN);
                     }
                     return;
 
                 // No direction was made, so we are at our initial step. Check all directions.
                 default :
-                    FindMatchesStartingAtToken(token,currentDepth,SwipeDirection.UP);
-                    FindMatchesStartingAtToken(token,currentDepth,SwipeDirection.DOWN);
-                    FindMatchesStartingAtToken(token,currentDepth,SwipeDirection.LEFT);
-                    FindMatchesStartingAtToken(token,currentDepth,SwipeDirection.RIGHT);
+                    FloodMatchTokensHelper(token,list,SwipeDirection.UP);
+                    FloodMatchTokensHelper(token,list,SwipeDirection.DOWN);
+                    FloodMatchTokensHelper(token,list,SwipeDirection.LEFT);
+                    FloodMatchTokensHelper(token,list,SwipeDirection.RIGHT);
                     break;
             }
-            _matchingTokens.Clear();
             return;
+
         }
-        private static MatchType DetermineMatchType()
+        /// <summary>
+        /// Loop through the parent data's affected tokens and determine the highest match type within.
+        /// </summary>
+        /// <param name="parentData"></param>
+        /// <param name="highestMatchType"></param>
+        public static void DetermineParentTokenMatchType(ref ParentTokenMatchData parentData, out MatchType highestMatchType)
         {
-            return MatchType.NO_MATCH;
+            foreach(WizardToken token in parentData.affectedTokens)
+            {
+                CheckTokenForMatches(token);
+                if (token.matchType > parentData.matchType)
+                {
+                    Debug.Log("found a match better than " + parentData.matchType);
+                    parentData.highestScoringToken = token;
+                    parentData.matchType = token.matchType;
+                }
+            }
+            highestMatchType = parentData.matchType;
+        }
+        public static MatchType GetMatchType(int xCount, int yCount)
+        {
+            MatchType ret;
+
+            // takes highest priority. if we have a 5 in a row, don't consider any other possibilities
+            if (xCount >= 4 || yCount >= 4)
+                ret = MatchType.FIVE_IN_A_ROW;
+            
+            else if (xCount == 3 || yCount == 3)
+            {
+                ret = MatchType.FOUR_IN_A_ROW;
+            }
+
+            else if (xCount >= 2 && yCount >= 2)
+                ret = MatchType.CROSS;
+            // three in a row
+            else if (xCount == 2 || yCount == 2 )
+                ret =  MatchType.THREE_IN_A_ROW;
+            // no match
+            else
+                ret = MatchType.NO_MATCH;
+            
+            return ret;
+        }
+        private static void CheckTokenForMatches(WizardToken token)
+        {
+            token.likeHorizontalNeighbors.Clear();
+            token.likeVerticalNeighbors.Clear();
+            
+            int xCount = 
+                token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
+            int yCount = 
+                token.CountNeighborsInCertainDirection(token,SwipeDirection.DOWN) + token.CountNeighborsInCertainDirection(token,SwipeDirection.UP);
+
+            token.matchType = GetMatchType(xCount,yCount);
+            // if we haven't gotten a match, return gamestate RETURN 
+            if (token.matchType == MatchType.NO_MATCH)
+                return;
+            token.matched = true;
+            if (xCount > yCount || yCount < 1)
+            {
+                token.likeVerticalNeighbors.Clear();
+            }
+            if (yCount > xCount || xCount < 1)
+            {
+                token.likeHorizontalNeighbors.Clear();
+            }
+            foreach(WizardToken neighborToken in token.likeHorizontalNeighbors)
+            {
+                neighborToken.matched = true;
+            }
+            foreach(WizardToken neighborToken in token.likeVerticalNeighbors)
+            {
+                neighborToken.matched = true;
+            }
+            if (token.matchType > MatchType.THREE_IN_A_ROW)
+                token.shouldUpgrade = true;
+
+        }
+        public static void Reset()
+        {
+
         }
     }
 }
