@@ -134,7 +134,7 @@ namespace WizardMatch
             tokensToCheckAfterMatch.Clear();
             foreach(WizardToken token in matchedTokens)
             {
-                // if it's just a normal token, don't break it. 
+                // if it isn't just a normal token, don't break it. 
                 if (!token.shouldUpgrade)
                 {
                     token.tokenState = TokenState.DESTROYING;
