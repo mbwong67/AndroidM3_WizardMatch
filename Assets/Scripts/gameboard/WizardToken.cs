@@ -20,6 +20,7 @@ namespace WizardMatch
         [SerializeField] public bool visited = false; // used for other matching algorithms
         [SerializeField] public bool shouldUpgrade = false;
         [SerializeField] public MatchType matchType;
+        [SerializeField] public TokenUpgradeType upgradeType;
 
         [SerializeField] private Vector2 _startOffset;
         [SerializeField] private GameBoard _gameBoard;
@@ -117,25 +118,50 @@ namespace WizardMatch
             StartCoroutine(B.mover.MoveToPosition(B.transform.position,targetPositionForB));
             
 
-            A.GrabTokenNeighbors();
-            B.GrabTokenNeighbors();
+            A.RecalculateTokenNeighbors();
+            B.RecalculateTokenNeighbors();
         }
+        /// <summary>
+        /// Destroy token if it isn't a special token.
+        /// </summary>
         void DestroyToken()
         {
             _gameBoard.RepopulateBoard();
-            // if (!shouldUpgrade)
+            
+            if (!shouldUpgrade)
                 Destroy(gameObject);
         }
+        /// <summary>
+        /// Physically move the token from position A to position B smoothly.
+        /// </summary>
+        /// <param name="A"></param>
+        /// <param name="B"></param>
         public void ForceMove (Vector3 A, Vector3 B)
         {
             StartCoroutine(mover.MoveToPosition(A,B));
         }
+        /// <summary>
+        /// Physically move the token to the specified board position smoothly. 
+        /// </summary>
+        /// <param name="boardPosition"></param>
         public void ForceMove (Vector2Int boardPosition)
         {
             float posX = xSpacing * boardPosition.x + _gameBoard.anchorPosition.x;
             float posY = ySpacing * -boardPosition.y + _gameBoard.anchorPosition.y;
             Vector3 newPosition = new Vector3(posX,posY,0);
             StartCoroutine(mover.MoveToPosition(transform.position,newPosition));
+        }
+        /// <summary>
+        /// Variant of force move in which the token instantly travels 
+        /// towards the target destination instead of smoothly transitioning towards it. 
+        /// </summary>
+        /// <param name="boardPosition"></param>
+        public void ForceMoveInstant(Vector2Int boardPosition)
+        {
+            float posX = xSpacing * boardPosition.x + _gameBoard.anchorPosition.x;
+            float posY = ySpacing * -boardPosition.y + _gameBoard.anchorPosition.y;
+            Vector3 newPosition = new Vector3(posX,posY,0);
+            transform.position = newPosition;
         }
 
         /// <summary>
@@ -167,7 +193,7 @@ namespace WizardMatch
         /// <summary>
         /// Gather information about neighboring tokens.
         /// </summary>
-        public void GrabTokenNeighbors()
+        public void RecalculateTokenNeighbors()
         {
             westNeighbor = boardPosition.x > 0 ? _gameBoard.playFieldTokens[boardPosition.x - 1, boardPosition.y] : null;
             eastNeighbor = boardPosition.x < _gameBoard.playFieldTokens.GetLength(0) - 1 ? 
@@ -176,6 +202,26 @@ namespace WizardMatch
             northNeighbor = boardPosition.y > 0 ? _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y - 1] : null;
             southNeighbor = boardPosition.y < _gameBoard.playFieldTokens.GetLength(1) - 1 ? 
                 _gameBoard.playFieldTokens[boardPosition.x, boardPosition.y + 1] : null;
+        }
+
+        /// <summary>
+        /// Return a list of all neighbors of this token.
+        /// </summary>
+        /// <returns></returns>
+        public List<WizardToken> GrabTokenNeighbors()
+        {
+            List<WizardToken> ret = new List<WizardToken>();
+
+            if (westNeighbor)
+                ret.Add(westNeighbor);
+            if (eastNeighbor)
+                ret.Add(eastNeighbor);
+            if (northNeighbor)
+                ret.Add(northNeighbor);
+            if (southNeighbor)
+                ret.Add(southNeighbor);
+
+            return ret;
         }
         /// <summary>
         /// Recursively count the neighbors of similar color in a given direction. Used for checking for matches at swipe time

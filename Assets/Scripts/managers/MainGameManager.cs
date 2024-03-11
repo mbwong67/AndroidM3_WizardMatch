@@ -23,6 +23,7 @@ namespace WizardMatch
         private WizardMatchControls _controls;
         void Awake()
         {
+            Application.targetFrameRate = 60;
             _controls = new WizardMatchControls();            
             _controls.Touch.Tap.canceled += context => CancelGrabOfToken();
             _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };

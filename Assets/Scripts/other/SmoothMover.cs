@@ -32,6 +32,10 @@ namespace WizardMatch
         {
             return transform.position == _targetPosition;
         }
+        public void SetStartPosition (Vector3 startPosition)
+        {
+            _startPosition = startPosition;
+        }
 
     }
 }

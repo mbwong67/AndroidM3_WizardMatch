@@ -99,24 +99,163 @@ namespace WizardMatch
                 matchedTokens.Add(neighborToken);
             }
             if (token.matchType > MatchType.THREE_IN_A_ROW)
+            {
                 token.shouldUpgrade = true;
+                switch (token.matchType)
+                {
+                    case MatchType.FOUR_IN_A_ROW :
+                        token.upgradeType = TokenUpgradeType.BOMB;
+                        break;
+                    case MatchType.CROSS :
+                        token.upgradeType = TokenUpgradeType.CROSS;
+                        break;
+                    case MatchType.FIVE_IN_A_ROW :
+                        token.upgradeType = TokenUpgradeType.TURBO;
+                        break;                                                
+                }
+            }
             matchedTokens.Add(token);
 
         }
 
         public void BreakAndScore()
         {
+            List<WizardToken> specialTokens = new List<WizardToken>();
+            
+            foreach(WizardToken token in matchedTokens)
+            {
+                if (token.upgradeType > TokenUpgradeType.DEFAULT && !token.shouldUpgrade)
+                {
+                    specialTokens.AddRange(AddTokensBasedOnUpgradeType(token));
+                }
+            }
+            matchedTokens.AddRange(specialTokens);
+
             tokensToCheckAfterMatch.Clear();
             foreach(WizardToken token in matchedTokens)
             {
-                token.tokenState = TokenState.DESTROYING;
-                // if (!token.shouldUpgrade)
-                // {
+                // if it's just a normal token, don't break it. 
+                if (!token.shouldUpgrade)
+                {
+                    token.tokenState = TokenState.DESTROYING;
                     token.PlayAnimation("Destroyed");
                     playFieldTokens[token.boardPosition.x,token.boardPosition.y] = null;
-                // }
+                }
             }
             matchedTokens.Clear();
+        }
+
+        /// <summary>
+        /// Big gross disgusting ugly mess.
+        /// Grab tokens appropriate to the target token's upgrade type. If any token is 
+        /// already upgraded, add appropriate tokens based on that as well.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        List<WizardToken> AddTokensBasedOnUpgradeType(WizardToken token)
+        {
+            TokenUpgradeType type = token.upgradeType;
+
+            if (type == TokenUpgradeType.DEFAULT)
+                return null;
+
+            List<WizardToken> retList = new List<WizardToken>();
+
+            switch (type)
+            {
+                case TokenUpgradeType.BOMB :
+                    var list = token.GrabTokenNeighbors();
+                    foreach(WizardToken neighbor in list)
+                    {
+                        if (!matchedTokens.Contains(neighbor))
+                        {
+                            if (neighbor.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(neighbor));
+                            retList.Add(neighbor);
+                        }
+                        
+                    }
+                    // grab top left
+                    if (token.boardPosition.y > 0 && token.boardPosition.x > 0)
+                    {
+                        var t = playFieldTokens[token.boardPosition.x - 1, token.boardPosition.y - 1];
+                        if (!matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    // grab top right
+                    if (token.boardPosition.y > 0 && token.boardPosition.x < playFieldTokens.GetLength(0) - 1)
+                    {
+                        var t = playFieldTokens[token.boardPosition.x + 1, token.boardPosition.y - 1];
+                        if (!matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+
+                    }
+                    // grab bottom left
+                    if (token.boardPosition.y < playFieldTokens.GetLength(1) - 1 && token.boardPosition.x > 0)
+                    {
+                        var t = playFieldTokens[token.boardPosition.x - 1, token.boardPosition.y + 1];
+                        if (!matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    // grab bottom right
+                    if (token.boardPosition.y < playFieldTokens.GetLength(1) - 1 && token.boardPosition.x < playFieldTokens.GetLength(0) - 1 )
+                    {
+                        var t = playFieldTokens[token.boardPosition.x + 1, token.boardPosition.y + 1];
+                        if (!matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    break;
+                case TokenUpgradeType.CROSS :
+                    for (int x = 0; x < playFieldTokens.GetLength(0); x++)
+                    {
+                        var t = playFieldTokens[x,token.boardPosition.y];
+                        if (t != token && !matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    for (int y = 0; y < playFieldTokens.GetLength(1); y++)
+                    {
+                        var t = playFieldTokens[token.boardPosition.x,y];
+                        if (t != token && !matchedTokens.Contains(t))
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    break;
+                case TokenUpgradeType.TURBO :
+                    foreach(WizardToken t in playFieldTokens)
+                    {
+                        if (t != token && !matchedTokens.Contains(t) && t.realColor == token.realColor)
+                        {
+                            if (t.upgradeType > TokenUpgradeType.DEFAULT)
+                                retList.AddRange(AddTokensBasedOnUpgradeType(t));
+                            retList.Add(t);
+                        }
+                    }
+                    break;
+            }
+            return retList;
         }
         #endregion
 
@@ -178,12 +317,19 @@ namespace WizardMatch
                         playFieldTokens[x,y].visited = false;
                 }
             }
+            tokensToCheckAfterMatch.Clear();
         }
 
         public void ResetTokens()
         {
             UpdateBoardPosition();
             PopulateNeighborTokens();
+            foreach(WizardToken token in playFieldTokens)
+            {
+                token.matched = false;
+                token.shouldUpgrade = false;
+            }
+
         }
         void SnapToLowest(Vector2Int snapPos, Vector2Int curPosition)
         {
@@ -258,8 +404,6 @@ namespace WizardMatch
             foreach(WizardToken token in playFieldTokens)
                 token.ForceMove(token.boardPosition);
         }
-
-        
         #endregion
 
         #region Setup Methods

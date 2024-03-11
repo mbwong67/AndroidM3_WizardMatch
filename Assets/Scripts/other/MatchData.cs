@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 namespace WizardMatch
 {
-    public struct ParentTokenMatchData // <-- unknown if needed yet
+    
+    public struct ParentTokenMatchData
     {
         public WizardToken parentToken;
         public WizardToken highestScoringToken;
@@ -56,6 +56,13 @@ namespace WizardMatch
         CROSS,
         FIVE_IN_A_ROW
     };
+    public enum TokenUpgradeType
+    {
+        DEFAULT,
+        BOMB,
+        CROSS,
+        TURBO
+    }
     public enum GameState
     {
         READY,
@@ -193,6 +200,23 @@ namespace WizardMatch
                 }
             }
             highestMatchType = parentData.matchType;
+            if (parentData.highestScoringToken.matchType > MatchType.THREE_IN_A_ROW)
+            {
+                parentData.highestScoringToken.shouldUpgrade = true;
+                switch (parentData.matchType)
+                {
+                    case MatchType.FOUR_IN_A_ROW :
+                        parentData.highestScoringToken.upgradeType = TokenUpgradeType.BOMB;
+                        break;
+                    case MatchType.CROSS :
+                        parentData.highestScoringToken.upgradeType = TokenUpgradeType.CROSS;
+                        break;
+                    case MatchType.FIVE_IN_A_ROW :
+                        parentData.highestScoringToken.upgradeType = TokenUpgradeType.TURBO;
+                        break;                                                
+                }
+                parentData.highestScoringToken.shouldUpgrade = true;
+            }
         }
         public static MatchType GetMatchType(int xCount, int yCount)
         {
@@ -251,10 +275,6 @@ namespace WizardMatch
             }
             if (token.matchType > MatchType.THREE_IN_A_ROW)
                 token.shouldUpgrade = true;
-
-        }
-        public static void Reset()
-        {
 
         }
     }
