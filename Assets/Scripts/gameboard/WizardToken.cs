@@ -1,6 +1,6 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using proto;
 using UnityEngine;
 
 namespace WizardMatch
@@ -69,7 +69,7 @@ namespace WizardMatch
         }
         void MonitorState()
         {
-            if (mover.IsInPosiiton() && tokenState != TokenState.DESTROYING)
+            if (mover.IsInPosition && tokenState != TokenState.DESTROYING)
             {
                 tokenState = TokenState.IDLE;
                 ForceMove(boardPosition);
@@ -89,8 +89,8 @@ namespace WizardMatch
             Vector3 targetPosition = transform.position;
             Vector3 initialPos = transform.position + (Vector3)_startOffset + new Vector3(0, position.y + position.x);
             transform.position = initialPos;
-            StartCoroutine(mover.MoveToPosition(initialPos,targetPosition));
-
+            // StartCoroutine(mover.MoveToPosition(targetPosition));
+            mover.SetTargetPosition(targetPosition);
             _animator = GetComponent<Animator>();
         }
         public void SetColor(int color)
@@ -114,9 +114,10 @@ namespace WizardMatch
             Vector3 targetPositionForA = B.transform.position;
             Vector3 targetPositionForB = A.transform.position;
 
-            StartCoroutine(A.mover.MoveToPosition(A.transform.position,targetPositionForA));
-            StartCoroutine(B.mover.MoveToPosition(B.transform.position,targetPositionForB));
-            
+            // StartCoroutine(A.mover.MoveToPosition(A.transform.position,targetPositionForA));
+            // StartCoroutine(B.mover.MoveToPosition(B.transform.position,targetPositionForB));
+            A.mover.SetTargetPosition(targetPositionForA);
+            B.mover.SetTargetPosition(targetPositionForB);
 
             A.RecalculateTokenNeighbors();
             B.RecalculateTokenNeighbors();
@@ -138,7 +139,8 @@ namespace WizardMatch
         /// <param name="B"></param>
         public void ForceMove (Vector3 A, Vector3 B)
         {
-            StartCoroutine(mover.MoveToPosition(A,B));
+            // StartCoroutine(mover.MoveToPosition(A,B));
+            mover.SetTargetPosition(B);
         }
         /// <summary>
         /// Physically move the token to the specified board position smoothly. 
@@ -146,10 +148,10 @@ namespace WizardMatch
         /// <param name="boardPosition"></param>
         public void ForceMove (Vector2Int boardPosition)
         {
-            float posX = xSpacing * boardPosition.x + _gameBoard.anchorPosition.x;
-            float posY = ySpacing * -boardPosition.y + _gameBoard.anchorPosition.y;
-            Vector3 newPosition = new Vector3(posX,posY,0);
-            StartCoroutine(mover.MoveToPosition(transform.position,newPosition));
+            this.boardPosition = boardPosition;
+            Vector3 newPosition = ConvertBoardPositionToWorldPosition();
+            // StartCoroutine(mover.MoveToPosition(transform.position,newPosition));
+            mover.SetTargetPosition(newPosition);
         }
         /// <summary>
         /// Variant of force move in which the token instantly travels 
@@ -158,11 +160,20 @@ namespace WizardMatch
         /// <param name="boardPosition"></param>
         public void ForceMoveInstant(Vector2Int boardPosition)
         {
+            this.boardPosition = boardPosition;
+            mover.SetTargetPosition(ConvertBoardPositionToWorldPosition());
+            transform.position = ConvertBoardPositionToWorldPosition();
+        }
+        /// <summary>
+        /// Convert this token's board position into a usable world position relative to it's parent gameboard object.
+        /// </summary>
+        /// <returns></returns>
+        Vector3 ConvertBoardPositionToWorldPosition()
+        {
             float posX = xSpacing * boardPosition.x + _gameBoard.anchorPosition.x;
             float posY = ySpacing * -boardPosition.y + _gameBoard.anchorPosition.y;
-            Vector3 newPosition = new Vector3(posX,posY,0);
-            transform.position = newPosition;
-        }
+            return new Vector3(posX,posY,0) + _gameBoard.transform.position;
+        } 
 
         /// <summary>
         /// Physically moves token into an empty position on the board. Position MUST be empty, or will return early. Does not update neighbors of other tokens on the board.
@@ -177,9 +188,7 @@ namespace WizardMatch
 
             UpdateBoardPosition();
 
-            float posX = xSpacing * newBoardPosition.x + _gameBoard.anchorPosition.x;
-            float posY = ySpacing * -newBoardPosition.y + _gameBoard.anchorPosition.y;
-            Vector3 newPosition = new Vector3(posX,posY,0);
+            Vector3 newPosition = ConvertBoardPositionToWorldPosition();
 
             ForceMove(transform.position,newPosition);
         }

@@ -5,37 +5,77 @@ using UnityEngine;
 
 namespace WizardMatch
 {
+    public enum SmoothMoverType
+    {
+        NONE,
+        EASE_OUT,
+        EASE_IN
+    }
     public class SmoothMover : MonoBehaviour
     {
-        private Vector3 _startPosition;
-        private Vector3 _targetPosition;
-        [SerializeField][Range(0.1f,10.0f)] private float _movementSpeed = 5.0f;
+        
+        public bool IsInPosition { get; private set; }
+        public SmoothMoverType moveType = SmoothMoverType.EASE_OUT;
+        
+        [SerializeField] private Vector3 _targetPosition;
+        [SerializeField] private Vector3 _startPosition;
+        [SerializeField] private float t = 0.01f;
+        private const float minMoveDistance = 0.01f;
 
-        public IEnumerator MoveToPosition(Vector3 a, Vector3 b) 
+        [SerializeField][Range(0.1f,50.0f)] private float _movementSpeed = 5.0f;
+
+        void Awake()
         {
-            _startPosition = a;
-            _targetPosition = b;
-            float step = (_movementSpeed / (a - b).magnitude) * Time.fixedDeltaTime;
-            float radStep = 2 * Mathf.PI / step;
-            float t = 0;
-            float r = 0;
-            while (t <= 1.0f) 
+            _startPosition = transform.position;
+        }
+        void FixedUpdate()
+        {
+            if (!IsInPosition)
+                Move();
+            if (Vector3.Distance(transform.position,_targetPosition) < minMoveDistance)
             {
-                t += step; // Goes from 0 to 1, incrementing by step each time
-                r += radStep;
-                transform.position = Vector3.Lerp(transform.position, b, t); // Move objectToMove closer to b
-                yield return new WaitForFixedUpdate();         // Leave the routine and return here in the next frame
+                transform.position = _targetPosition;
+                IsInPosition = true;
+                t = 0.01f;
             }
-            transform.position = b;
         }
-        public bool IsInPosiiton()
+        public void SetTargetPosition(Vector3 targetPosition)
         {
-            return transform.position == _targetPosition;
+            IsInPosition = false;
+            _targetPosition = targetPosition;
         }
-        public void SetStartPosition (Vector3 startPosition)
+        public void SetStartPosition(Vector3 startPosition)
         {
             _startPosition = startPosition;
         }
+        void Move()
+        {
+            switch(moveType)
+            {
+                case SmoothMoverType.EASE_IN :
+                    EaseIn();
+                    break;
+                case SmoothMoverType.EASE_OUT :
+                    EaseOut();
+                    break;
+                default :
+                    break;
+            }
+        }
 
+        void EaseOut()
+        {
+            transform.position = Vector3.Lerp(transform.position,_targetPosition,Time.fixedDeltaTime * _movementSpeed);
+        }
+        void EaseIn()
+        {
+            t += t * Time.fixedDeltaTime * _movementSpeed;
+            if (t >= 1.0f)
+            {
+                transform.position = _targetPosition;
+                return;
+            }
+            transform.position = Vector3.Lerp(_startPosition,_targetPosition,t);
+        }
     }
 }

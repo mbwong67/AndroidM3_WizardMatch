@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using WizardMatch;
 
-[CreateAssetMenu(fileName = "MatchEmblem",menuName = "WizardMatch")]
+[CreateAssetMenu(fileName = "MatchEmblem",menuName = "WizardMatch/MatchEmblem", order = 0)]
 
 
 // scriptable object for holding basic data about the swipe icons
 public class SwipeScriptable : ScriptableObject
 {
     public Sprite icon;
-    public SwipeElement swipeElement;
+    public Element swipeElement;
     public short color;
     /*
         0 = red

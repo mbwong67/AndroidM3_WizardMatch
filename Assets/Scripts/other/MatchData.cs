@@ -37,7 +37,7 @@ namespace WizardMatch
         RIGHT,
         NONE
     }
-    public enum SwipeElement
+    public enum Element
     {
         FIRE,
         EARTH,
@@ -72,8 +72,16 @@ namespace WizardMatch
         WAIT,
         RETURN,
         FINAL_CHECK,
+        ENEMY_TURN,
         NONE
     };
+    public enum CharacterType
+    {
+        PLAYER,
+        ENEMY,
+        BOSS
+    }
+    
     /// <summary>
     /// Class for finding any matches on a board when called upon.
     /// </summary>
@@ -202,7 +210,8 @@ namespace WizardMatch
             highestMatchType = parentData.matchType;
             if (parentData.highestScoringToken.matchType > MatchType.THREE_IN_A_ROW)
             {
-                parentData.highestScoringToken.shouldUpgrade = true;
+                if (parentData.highestScoringToken.upgradeType == TokenUpgradeType.DEFAULT)
+                    parentData.highestScoringToken.shouldUpgrade = true;
                 switch (parentData.matchType)
                 {
                     case MatchType.FOUR_IN_A_ROW :

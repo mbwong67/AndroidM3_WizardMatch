@@ -86,7 +86,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
+  m_MaskInteraction: 1
   m_SpriteSortPoint: 0
 --- !u!114 &2462018282727386128
 MonoBehaviour:
@@ -108,8 +108,10 @@ MonoBehaviour:
   xSpacing: 0
   ySpacing: 0
   matched: 0
+  visited: 0
   shouldUpgrade: 0
   matchType: 0
+  upgradeType: 0
   _startOffset: {x: 0, y: 5}
   _gameBoard: {fileID: 0}
   _animator: {fileID: 0}
@@ -140,7 +142,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1aa71a8218013174ea00121bf7e5d75c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _movementSpeed: 5
+  _movementSpeed: 12
 --- !u!58 &2113147595088998160
 CircleCollider2D:
   m_ObjectHideFlags: 0

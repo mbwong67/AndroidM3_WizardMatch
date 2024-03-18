@@ -10,11 +10,13 @@ namespace WizardMatch
     public class MainGameManager : MonoBehaviour
     {
         public delegate void MatchCleared();
-        public event MatchCleared OnClear;
-
+        public static event MatchCleared OnClear;
+        public static GameState GameState;
+        
         [SerializeField] public GameBoard gameBoard;
+        [SerializeField] public PlayfieldCharacterManager characterManager;
+        
         [SerializeField] private GameObject _selectedToken;
-        [SerializeField] private GameState _gameState;
         [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
 
         private WizardToken[] _swipedTokensThisMove = new WizardToken[2];
@@ -29,10 +31,24 @@ namespace WizardMatch
             _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
             _controls.Enable();
         }
+        void OnEnable()
+        {
+            Character.Performed += TestEngageFromMainManager;
+        }
+        void OnDisable()
+        {
+            Character.Performed -= TestEngageFromMainManager;
+        }
+
+        void TestEngageFromMainManager(Character character)
+        {
+            Debug.Log("something happened..?");
+            character.atk = 999;
+        }
 
         void Update()
         {
-            switch(_gameState)
+            switch(GameState)
             {
                 case GameState.READY :
                     HandleInput();
@@ -45,7 +61,8 @@ namespace WizardMatch
                     break;
                 case GameState.MATCHING : 
                     gameBoard.BreakAndScore();
-                    _gameState = GameState.WAIT;
+                    OnClear();
+                    GameState = GameState.WAIT;
                     break;
                 case GameState.WAIT : 
                     WaitUntilTokenState(TokenState.IDLE,GameState.CASCADE);
@@ -59,10 +76,14 @@ namespace WizardMatch
                     
                     if (gameBoard.CheckWholeBoardForMatches())
                     {
-                        _gameState = GameState.CASCADE;
+                        GameState = GameState.CASCADE;
                     }
+                    // board is finally still and there are no more matches. prepare for next turn.
                     else
-                        _gameState = GameState.READY;
+                    {
+                        GameState = GameState.READY;
+                        characterManager.AdvanceTurn();
+                    }
                     break;
 
             }
@@ -81,7 +102,7 @@ namespace WizardMatch
                     if (!gameBoard.playFieldTokens[col,row] || gameBoard.playFieldTokens[col,row].tokenState != desiredState)
                         return;
             }
-            _gameState = transitionState;
+            GameState = transitionState;
             gameBoard.ResetTokens();
         }
         void HandleInput()
@@ -158,7 +179,7 @@ namespace WizardMatch
                 _swipedTokensThisMove[1] = neighborToken;
 
                 CancelGrabOfToken();
-                _gameState = GameState.CHECK_SWIPE;
+                GameState = GameState.CHECK_SWIPE;
         }}
         void CheckSwipe()
         {
@@ -176,19 +197,19 @@ namespace WizardMatch
             if (_swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH)
             {
                 Debug.Log("returning");
-                _gameState = GameState.RETURN;
+                GameState = GameState.RETURN;
                 _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
                 return;
             }
 
-            _gameState = GameState.MATCHING;
+            GameState = GameState.MATCHING;
 
         }
         void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue = GameState.READY)
         {
             if (_swipedTokensThisMove[0].tokenState == TokenState.IDLE && _swipedTokensThisMove[1].tokenState == TokenState.IDLE)
             {
-                _gameState = stateIfSoIsTrue;
+                GameState = stateIfSoIsTrue;
             }
         }
         void CancelGrabOfToken()

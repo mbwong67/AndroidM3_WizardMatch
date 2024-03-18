@@ -45,9 +45,17 @@ namespace WizardMatch
                 }
             }
             Debug.Log(count);
-
         }
-
+        void MonitorTokens()
+        {
+            if (boardIsStill)
+            {
+                foreach(WizardToken token in playFieldTokens)
+                {
+                    token.ForceMoveInstant(token.boardPosition);
+                }
+            }
+        }
         public bool CheckWholeBoardForMatches()
         {
             foreach(WizardToken token in playFieldTokens)
@@ -100,7 +108,8 @@ namespace WizardMatch
             }
             if (token.matchType > MatchType.THREE_IN_A_ROW)
             {
-                token.shouldUpgrade = true;
+                if (token.upgradeType == TokenUpgradeType.DEFAULT)
+                    token.shouldUpgrade = true;
                 switch (token.matchType)
                 {
                     case MatchType.FOUR_IN_A_ROW :
@@ -120,6 +129,7 @@ namespace WizardMatch
 
         public void BreakAndScore()
         {
+            MainGameManager.GameState = GameState.MATCHING;                          
             List<WizardToken> specialTokens = new List<WizardToken>();
             
             foreach(WizardToken token in matchedTokens)
@@ -409,7 +419,7 @@ namespace WizardMatch
         #region Setup Methods
         void CreateTokenAtPoint(int col, int row)
         {
-            Vector2 offset = anchorPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing);
+            Vector2 offset = anchorPosition + new Vector2(col * _horizontalSpacing, -row * _verticalSpacing) + (Vector2) transform.position;
             WizardToken curTok = Instantiate(_tokenPrefab,offset,Quaternion.identity,gameObject.transform);
             curTok.swipeData = tokenTypes[(int) Mathf.Floor(Random.Range(0,tokenTypes.Count))];
             curTok.InitializeTokenAtStart(new Vector2Int(col,row), GetComponent<GameBoard>(),_horizontalSpacing,_verticalSpacing);
@@ -422,6 +432,9 @@ namespace WizardMatch
                 Debug.LogError("ERROR : " + gameObject.name + " : _tokenPrefab not set! Aborting...");
                 Destroy(gameObject);
             }
+            _horizontalSpacing *= transform.localScale.x;
+            _verticalSpacing *= transform.localScale.y;
+            anchorPosition *= transform.localScale;
             for (int col = 0; col < playFieldTokens.GetLength(0); col++)
             {
                 for (int row = 0; row < playFieldTokens.GetLength(1); row++)
