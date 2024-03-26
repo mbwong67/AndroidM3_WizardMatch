@@ -5,11 +5,12 @@ namespace WizardMatch
     public class Timer
     {
         public float RemaingSeconds { get; private set; }
-
+        public float MaxDuration { get; private set; }
 
         public Timer(float duration)
         {
             RemaingSeconds = duration;
+            MaxDuration = duration;
         }
 
         public event Action OnTimerStart; // <-- currently unused
@@ -25,6 +26,7 @@ namespace WizardMatch
         public void SetTimer(float value)
         {
             RemaingSeconds = value;
+            MaxDuration = value;
         }
         private void CheckForTimerEnd()
         {

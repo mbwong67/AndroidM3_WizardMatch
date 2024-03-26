@@ -10,9 +10,16 @@ namespace WizardMatch
     public class MainGameManager : MonoBehaviour
     {
         public delegate void MatchCleared();
-        public static event MatchCleared OnClear;
-        public static GameState GameState;
+        public static event MatchCleared OnClear = delegate{};
+
+        public delegate void Touched();
+        public static event Touched OnTouch = delegate{};
+
+        public delegate void Released();
+        public static event Released OnRelease = delegate{};
+        public GameState MainGameState;
         
+        [SerializeField] private BlackScreenFader _fader;
         [SerializeField] public GameBoard gameBoard;
         [SerializeField] public PlayfieldCharacterManager characterManager;
         
@@ -26,29 +33,34 @@ namespace WizardMatch
         void Awake()
         {
             Application.targetFrameRate = 60;
+            MainGameState = GameState.READY;
             _controls = new WizardMatchControls();            
             _controls.Touch.Tap.canceled += context => CancelGrabOfToken();
             _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
+        }
+        void Initialize()
+        {
             _controls.Enable();
+            gameBoard.enabled = true;
+            gameBoard.InitializeBoard();
+            characterManager.InitializeCharacterManager();
         }
         void OnEnable()
         {
-            Character.Performed += TestEngageFromMainManager;
+            _fader.OnFadeIn += Initialize;
         }
         void OnDisable()
         {
-            Character.Performed -= TestEngageFromMainManager;
+            _fader.OnFadeIn -= Initialize;
         }
-
-        void TestEngageFromMainManager(Character character)
+        // may not be needed.
+        void TestEngage(Character character)
         {
-            Debug.Log("something happened..?");
-            character.atk = 999;
+            character.PlayAnimation("Attack");
         }
-
         void Update()
         {
-            switch(GameState)
+            switch(MainGameState)
             {
                 case GameState.READY :
                     HandleInput();
@@ -60,33 +72,77 @@ namespace WizardMatch
                     WaitUntilSwipedTokensStop();
                     break;
                 case GameState.MATCHING : 
-                    gameBoard.BreakAndScore();
-                    OnClear();
-                    GameState = GameState.WAIT;
+                    BreakAndScore();
+                    MainGameState = GameState.WAIT_FOR_CASCADE;
                     break;
-                case GameState.WAIT : 
+                case GameState.WAIT_FOR_CASCADE : 
                     WaitUntilTokenState(TokenState.IDLE,GameState.CASCADE);
                     break;
                 case GameState.CASCADE :
                     if (gameBoard.boardIsStill)
                         gameBoard.Cascade();
-                    WaitUntilTokenState(TokenState.IDLE,GameState.FINAL_CHECK);
+                    WaitUntilTokenState(TokenState.IDLE,GameState.FINAL_CHECK_BEFORE_ATTACK);
                     break;
-                case GameState.FINAL_CHECK :
+                // the last check on the board before moving to the player's attack move. 
+                case GameState.FINAL_CHECK_BEFORE_ATTACK :
                     
                     if (gameBoard.CheckWholeBoardForMatches())
                     {
-                        GameState = GameState.CASCADE;
+                        MainGameState = GameState.CASCADE;
                     }
                     // board is finally still and there are no more matches. prepare for next turn.
                     else
                     {
-                        GameState = GameState.READY;
-                        characterManager.AdvanceTurn();
+                        MainGameState = GameState.FRIENDLY_ATTACKING;
+                        characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
+
+                        characterManager.Execute();
+                        gameBoard.specialTokenModifier = 1;
                     }
+                    break;
+                // dead state. must change from outside sources. 
+                case GameState.FRIENDLY_ATTACKING :
+                case GameState.ENEMY_ATTACKING :
+                {
+                    break;
+                }
+
+                // wait until all characters are still and the board is stationary. at this point, resume to READY.
+                case GameState.WAIT_GENERAL :
+                    if (characterManager.AllCharactersAreStill() && gameBoard.boardIsStill)
+                    {
+                        if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
+                            MainGameState = GameState.ENEMY_TURN;
+                        else
+                            MainGameState = GameState.READY;
+                    }
+                    break;
+                // for when the enemy needs to attack. 
+                case GameState.ENEMY_TURN : 
+
+                    Debug.Log("enemy turn!!!");
+                    
+                    characterManager.Execute();
+                    characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
+
+                    MainGameState = GameState.ENEMY_ATTACKING;
                     break;
 
             }
+        }
+
+        /// <summary>
+        /// Prep active character's damage numbers, break tokens on board. 
+        /// </summary>
+        void BreakAndScore()
+        {
+            OnClear();
+            
+            gameBoard.BreakAndScore();
+            
+            Character cur = characterManager.currentActiveCharacter;
+            cur.atkModifier = gameBoard.specialTokenModifier;
+            cur.damageBonus = characterManager.matchCombo - 1;
         }
 
         /// <summary>
@@ -102,8 +158,16 @@ namespace WizardMatch
                     if (!gameBoard.playFieldTokens[col,row] || gameBoard.playFieldTokens[col,row].tokenState != desiredState)
                         return;
             }
-            GameState = transitionState;
+            MainGameState = transitionState;
             gameBoard.ResetTokens();
+        }
+        void OnAttackFinish(string animation)
+        {
+            MainGameState = GameState.WAIT_GENERAL;
+            // Unsubscribe this event to this method until needed to be invoked again. 
+            characterManager.AdvanceTurn();
+            characterManager.currentActiveCharacter.OnCharacterAnimationFinish -= OnAttackFinish;
+
         }
         void HandleInput()
         {
@@ -117,6 +181,7 @@ namespace WizardMatch
             // check to see if the point we've touched is actually a token or not.
             if (_controls.Touch.Tap.triggered)
             {
+                OnTouch();
                 _pointLastTouched = _touchScreenPosition;
                 Ray ray = Camera.main.ScreenPointToRay(_touchScreenPosition);
                 RaycastHit2D hit = Physics2D.GetRayIntersection(ray);
@@ -178,8 +243,9 @@ namespace WizardMatch
                 _swipedTokensThisMove[0] = token;
                 _swipedTokensThisMove[1] = neighborToken;
 
+
                 CancelGrabOfToken();
-                GameState = GameState.CHECK_SWIPE;
+                MainGameState = GameState.CHECK_SWIPE;
         }}
         void CheckSwipe()
         {
@@ -196,20 +262,19 @@ namespace WizardMatch
             // if this swipe isn't valid, return as soon as possible.
             if (_swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH)
             {
-                Debug.Log("returning");
-                GameState = GameState.RETURN;
+                MainGameState = GameState.RETURN;
                 _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
                 return;
             }
 
-            GameState = GameState.MATCHING;
+            MainGameState = GameState.MATCHING;
 
         }
         void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue = GameState.READY)
         {
             if (_swipedTokensThisMove[0].tokenState == TokenState.IDLE && _swipedTokensThisMove[1].tokenState == TokenState.IDLE)
             {
-                GameState = stateIfSoIsTrue;
+                MainGameState = stateIfSoIsTrue;
             }
         }
         void CancelGrabOfToken()
@@ -217,6 +282,8 @@ namespace WizardMatch
             if (_selectedToken)
                 _selectedToken.GetComponent<WizardToken>().PlayAnimation("Reset");
             _selectedToken = null;
+
+            OnRelease();
         }
     }
 }

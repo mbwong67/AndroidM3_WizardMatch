@@ -12,6 +12,10 @@ namespace WizardMatch
         public delegate void RecalculateBoardPosition();
         public static event RecalculateBoardPosition UpdateBoardPosition;
 
+        /// <summary>
+        /// If we get any matches that are above just a regular match, add it here.
+        /// </summary>
+        [SerializeField] public int specialTokenModifier = 1;
         [SerializeField] public Vector2 anchorPosition;
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
         [SerializeField] public List<WizardToken> matchedTokens = new List<WizardToken>();
@@ -25,26 +29,21 @@ namespace WizardMatch
         [SerializeField][Range(0.1f,10f)] private float _verticalSpacing = 0.0f;
 
 
-        void Awake()
-        {
-            InitializeBoard();
-        }
         void Update()
         {
-            int count = 0;
             for (int i = 0; i < playFieldTokens.GetLength(0); i++)
             {
                 for (int j = 0; j < playFieldTokens.GetLength(1); j++)
                 {
-                    if (playFieldTokens[i,j])
-                        count++;
                     if (playFieldTokens[i,j] && playFieldTokens[i,j].tokenState == TokenState.IDLE)
                         boardIsStill = true;
                     else
+                    {
                         boardIsStill = false;
+                        return;
+                    }
                 }
             }
-            Debug.Log(count);
         }
         void MonitorTokens()
         {
@@ -108,6 +107,7 @@ namespace WizardMatch
             }
             if (token.matchType > MatchType.THREE_IN_A_ROW)
             {
+                specialTokenModifier++;
                 if (token.upgradeType == TokenUpgradeType.DEFAULT)
                     token.shouldUpgrade = true;
                 switch (token.matchType)
@@ -116,9 +116,11 @@ namespace WizardMatch
                         token.upgradeType = TokenUpgradeType.BOMB;
                         break;
                     case MatchType.CROSS :
+                        specialTokenModifier += 1;
                         token.upgradeType = TokenUpgradeType.CROSS;
                         break;
                     case MatchType.FIVE_IN_A_ROW :
+                        specialTokenModifier += 2;
                         token.upgradeType = TokenUpgradeType.TURBO;
                         break;                                                
                 }
@@ -129,7 +131,6 @@ namespace WizardMatch
 
         public void BreakAndScore()
         {
-            MainGameManager.GameState = GameState.MATCHING;                          
             List<WizardToken> specialTokens = new List<WizardToken>();
             
             foreach(WizardToken token in matchedTokens)
@@ -140,8 +141,21 @@ namespace WizardMatch
                 }
             }
             matchedTokens.AddRange(specialTokens);
+            if (matchedTokens.Count >= 5 && matchedTokens.Count < 10)
+            {
+                specialTokenModifier++;
+            }
+            else if (matchedTokens.Count >= 10 && matchedTokens.Count < 15)
+            {
+                specialTokenModifier += 2;
+            }
+            else if (matchedTokens.Count >= 15)
+            {
+                specialTokenModifier += 3;
+            }
 
             tokensToCheckAfterMatch.Clear();
+            
             foreach(WizardToken token in matchedTokens)
             {
                 // if it isn't just a normal token, don't break it. 
@@ -288,7 +302,6 @@ namespace WizardMatch
         }
         public void Cascade()
         {
-            Debug.Log("in cascade, mf");
             ParentTokenMatchData[] parentTokens = new ParentTokenMatchData[64];
             boardIsStill = false;
             
@@ -312,7 +325,7 @@ namespace WizardMatch
                     matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeHorizontalNeighbors);
                     matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeVerticalNeighbors);
                     matchedTokens.Add(parentTokens[i].highestScoringToken);
-                    Debug.Log("Parent token for this match : " + parentTokens[i].highestScoringToken.boardPosition);
+                    // Debug.Log("Parent token for this match : " + parentTokens[i].highestScoringToken.boardPosition);
                 }    
             }
             if (matchedTokens.Count > 0)
@@ -425,7 +438,7 @@ namespace WizardMatch
             curTok.InitializeTokenAtStart(new Vector2Int(col,row), GetComponent<GameBoard>(),_horizontalSpacing,_verticalSpacing);
             playFieldTokens[col,row] = curTok;
         }
-        void InitializeBoard()
+        public void InitializeBoard()
         {
             if (!_tokenPrefab)
             {

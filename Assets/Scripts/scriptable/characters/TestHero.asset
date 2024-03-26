@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: TestHero
   m_EditorClassIdentifier: 
   CharacterElement: 0
+  characterType: 0
+  attacks:
+  - {fileID: 5624236881557345773, guid: 76fb33297a20cc6439d56b397bd558dc, type: 3}
   characterName: Blip
   characterLevel: 1
-  baseHP: 50
+  baseHP: 100
   baseATK: 5
   baseDEF: 0

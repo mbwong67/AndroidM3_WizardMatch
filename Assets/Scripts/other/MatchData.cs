@@ -69,10 +69,13 @@ namespace WizardMatch
         CHECK_SWIPE,
         MATCHING,
         CASCADE,
-        WAIT,
+        WAIT_FOR_CASCADE,
         RETURN,
-        FINAL_CHECK,
+        FINAL_CHECK_BEFORE_ATTACK,
         ENEMY_TURN,
+        WAIT_GENERAL,
+        ENEMY_ATTACKING,
+        FRIENDLY_ATTACKING,
         NONE
     };
     public enum CharacterType
@@ -202,7 +205,6 @@ namespace WizardMatch
                 CheckTokenForMatches(token);
                 if (token.matchType > parentData.matchType)
                 {
-                    Debug.Log("found a match better than " + parentData.matchType);
                     parentData.highestScoringToken = token;
                     parentData.matchType = token.matchType;
                 }

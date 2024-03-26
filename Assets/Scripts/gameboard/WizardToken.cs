@@ -7,7 +7,7 @@ namespace WizardMatch
 {
     // Class responsible for most token logic.
     // Calculates it's neighbors and updates it's position on the gameboard via a gameboard reference.
-    public class WizardToken : MonoBehaviour
+    public class WizardToken : MonoBehaviour, IAnimatable
     {
         [SerializeField] public SwipeScriptable swipeData;
         [SerializeField] public Vector2Int boardPosition;
@@ -48,8 +48,8 @@ namespace WizardMatch
             Color.gray,
             Color.black
         };
-    
-    #endregion
+
+        #endregion
 
         void OnEnable()
         {
@@ -100,6 +100,7 @@ namespace WizardMatch
         }
         public void SwapTokenPositions(WizardToken A, WizardToken B)
         {
+
             A.tokenState = TokenState.MOVING;
             B.tokenState = TokenState.MOVING;
 
@@ -297,6 +298,14 @@ namespace WizardMatch
                     break;
             }
             return neighborCount;
+        }
+
+        public void OnAnimationFinish(string animation)
+        {
+        }
+
+        public void OnAnimationBegin(string animation)
+        {
         }
     }
 }

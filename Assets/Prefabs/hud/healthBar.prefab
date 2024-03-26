@@ -178,7 +178,6 @@ GameObject:
   m_Component:
   - component: {fileID: 3041838221288808983}
   - component: {fileID: 8185217350063305192}
-  - component: {fileID: 7336434444463661816}
   m_Layer: 0
   m_Name: fill
   m_TagString: Untagged
@@ -253,19 +252,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 1
   m_SpriteSortPoint: 0
---- !u!114 &7336434444463661816
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5525380412777614405}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1aa71a8218013174ea00121bf7e5d75c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _movementSpeed: 5
 --- !u!1 &9026661364905862559
 GameObject:
   m_ObjectHideFlags: 0
@@ -436,7 +422,7 @@ Transform:
   - {fileID: 8346986298733564568}
   - {fileID: 6612611782287012793}
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4336305995722915302
 MonoBehaviour:
@@ -453,7 +439,6 @@ MonoBehaviour:
   _moveSpeed: 10
   _hpValue: 10
   maxHP: 0
-  testrange: 1
   _spriteMask: {fileID: 6612611782287012793}
   _offset: {x: 0, y: 3, z: 0}
   _spriteMaskTargetOffset: {x: -2.5, y: 0, z: 0}
