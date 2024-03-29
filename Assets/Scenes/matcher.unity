@@ -232,6 +232,7 @@ MonoBehaviour:
   - {fileID: 482542691}
   spawnableEnemies:
   - {fileID: 11400000, guid: a7af3ba2f909b6b41909a0226e89d993, type: 2}
+  characterQueue: []
   currentActiveCharacter: {fileID: 0}
   matchCombo: 0
   turn: 0
@@ -930,6 +931,10 @@ PrefabInstance:
       propertyPath: character
       value: 
       objectReference: {fileID: 533720254}
+    - target: {fileID: 4336305995722915302, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
+      propertyPath: _spriteMaskTargetOffset.x
+      value: -2.5
+      objectReference: {fileID: 0}
     - target: {fileID: 5525380412777614405, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -940,11 +945,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.5
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.z
@@ -1399,11 +1404,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.5
+      value: 0.33
       objectReference: {fileID: 0}
     - target: {fileID: 6786313738971386983, guid: 252f21fe6e9d5d74982b14e401afcc61, type: 3}
       propertyPath: m_LocalScale.z

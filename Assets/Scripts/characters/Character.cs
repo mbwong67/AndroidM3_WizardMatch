@@ -145,6 +145,7 @@ namespace WizardMatch
 
         public void OnAnimationFinish(string animation)
         {
+            Debug.Log("in here");
             switch(animation)
             {
                 case "Attack" :
@@ -154,6 +155,7 @@ namespace WizardMatch
                 case "Damage" :
                     if (hp <= 0)
                     {
+                        Debug.Log("dead!!!!");
                         PlayAnimation("Death");
                     }
                     else

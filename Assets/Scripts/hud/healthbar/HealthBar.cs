@@ -22,6 +22,8 @@ namespace WizardMatch
             }
             maxHP = character.characterData.baseHP;
             _hpValue = character.hp;
+            _spriteMaskTargetOffset.x *= transform.localScale.x;
+            _spriteMaskTargetOffset.y *= transform.localScale.y;
         }
         void Update()
         {

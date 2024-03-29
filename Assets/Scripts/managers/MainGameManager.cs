@@ -121,7 +121,8 @@ namespace WizardMatch
                 case GameState.ENEMY_TURN : 
 
                     Debug.Log("enemy turn!!!");
-                    
+                    if (characterManager.currentActiveCharacter.hp <= 0)
+                        return;
                     characterManager.Execute();
                     characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
 
