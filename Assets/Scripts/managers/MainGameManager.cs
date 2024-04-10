@@ -44,6 +44,23 @@ namespace WizardMatch
             gameBoard.enabled = true;
             gameBoard.InitializeBoard();
             characterManager.InitializeCharacterManager();
+            List<Character> chs = new List<Character>();
+            chs.AddRange(characterManager.friendlies); chs.AddRange(characterManager.enemies); 
+            
+            foreach(Character character in chs)
+                character.OnCharacterAnimationFinish += CharacterAnimationFinish;
+        }
+        void CharacterAnimationFinish(string animation)
+        {
+            switch(animation)
+            {
+                case "Death" :
+                    if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.PLAYER)
+                        Debug.Log("Game Over!");
+                    else
+                        Debug.Log("Enemy dead lolololol");
+                    break;
+            }
         }
         void OnEnable()
         {
@@ -52,17 +69,16 @@ namespace WizardMatch
         void OnDisable()
         {
             _fader.OnFadeIn -= Initialize;
-        }
-        // may not be needed.
-        void TestEngage(Character character)
-        {
-            character.PlayAnimation("Attack");
+            characterManager.currentActiveCharacter.OnCharacterAnimationFinish -= CharacterAnimationFinish;
+
         }
         void Update()
         {
             switch(MainGameState)
             {
                 case GameState.READY :
+                    if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
+                            MainGameState = GameState.ENEMY_TURN;
                     HandleInput();
                     break;
                 case GameState.CHECK_SWIPE :
@@ -111,17 +127,15 @@ namespace WizardMatch
                 case GameState.WAIT_GENERAL :
                     if (characterManager.AllCharactersAreStill() && gameBoard.boardIsStill)
                     {
-                        if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
-                            MainGameState = GameState.ENEMY_TURN;
-                        else
-                            MainGameState = GameState.READY;
+                        MainGameState = GameState.READY;
+                        characterManager.AdvanceTurn();
                     }
                     break;
                 // for when the enemy needs to attack. 
                 case GameState.ENEMY_TURN : 
 
-                    Debug.Log("enemy turn!!!");
-                    
+                    if (characterManager.currentActiveCharacter.hp <= 0)
+                        return;
                     characterManager.Execute();
                     characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
 
@@ -165,7 +179,6 @@ namespace WizardMatch
         {
             MainGameState = GameState.WAIT_GENERAL;
             // Unsubscribe this event to this method until needed to be invoked again. 
-            characterManager.AdvanceTurn();
             characterManager.currentActiveCharacter.OnCharacterAnimationFinish -= OnAttackFinish;
 
         }

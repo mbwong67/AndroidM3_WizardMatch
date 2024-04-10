@@ -92,7 +92,6 @@ namespace WizardMatch
         {
             Performed(this);
         }
-
         public void AddToStat(int addend, string stat)
         {
             switch (stat)
@@ -131,7 +130,7 @@ namespace WizardMatch
         }
         public int GetDamageToDeal()
         {
-            return (atk * atkModifier) + damageBonus;
+            return atk * atkModifier + damageBonus;
         }
 
         public void PlayAnimation(string animation)
@@ -145,7 +144,7 @@ namespace WizardMatch
 
         public void OnAnimationFinish(string animation)
         {
-            switch(animation)
+                switch(animation)
             {
                 case "Attack" :
                     characterState = CharacterState.IDLE;
@@ -162,9 +161,10 @@ namespace WizardMatch
                     break;
                 case "Death" : 
                     // some other logic here to notify death.
-                    Debug.Log("dead");
+                    Debug.Log("dead!!");
                     break;
                 default :
+                    Debug.Log("Animation " + animation + " has no switch case!");
                     break;
             }
             OnCharacterAnimationFinish(animation);

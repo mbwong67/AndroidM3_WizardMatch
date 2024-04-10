@@ -325,7 +325,6 @@ namespace WizardMatch
                     matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeHorizontalNeighbors);
                     matchedTokens.AddRange(parentTokens[i].highestScoringToken.likeVerticalNeighbors);
                     matchedTokens.Add(parentTokens[i].highestScoringToken);
-                    // Debug.Log("Parent token for this match : " + parentTokens[i].highestScoringToken.boardPosition);
                 }    
             }
             if (matchedTokens.Count > 0)

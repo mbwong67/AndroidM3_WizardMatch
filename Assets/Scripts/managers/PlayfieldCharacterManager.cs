@@ -43,7 +43,7 @@ namespace WizardMatch
             characters.AddRange(enemies);
             foreach(Character character in characters)
                 characterQueue.Add(character);
-            currentActiveCharacter = characterQueue.ElementAt(0);
+            AdvanceTurn();
             currentActiveCharacter.targetCharacter = FindTargetCharacter(enemies);
 
         }
@@ -88,8 +88,6 @@ namespace WizardMatch
         /// </summary>
         public void Execute()
         {
-            Debug.Log(currentActiveCharacter.characterData.characterName + " has attacked!!");
-            
             currentActiveCharacter.PlayAnimation("Attack");
             currentActiveCharacter.Engage();
         }
@@ -98,13 +96,19 @@ namespace WizardMatch
         /// </summary>
         public void AdvanceTurn()
         {
-            currentActiveCharacter.ResetModifiers();
+            // temp
+            if (characterQueue.Count < 2)
+                return;
+            if (currentActiveCharacter)
+                currentActiveCharacter.ResetModifiers();
             matchCombo = 0;
             turn++;
-            Character newChar = characterQueue.ElementAt(characterQueue.Count - 1);
+
+            currentActiveCharacter = characterQueue.ElementAt(0);
+
+            Character pushBack = characterQueue[0];
             characterQueue.RemoveAt(0);
-            characterQueue.Add(currentActiveCharacter);
-            currentActiveCharacter = newChar;
+            characterQueue.Add(pushBack);
 
             switch (currentActiveCharacter.characterData.characterType)
             {
