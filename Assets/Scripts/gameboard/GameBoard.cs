@@ -15,6 +15,7 @@ namespace WizardMatch
         /// <summary>
         /// If we get any matches that are above just a regular match, add it here.
         /// </summary>
+        [SerializeField] public int matchCombo = 0;
         [SerializeField] public int specialTokenModifier = 1;
         [SerializeField] public Vector2 anchorPosition;
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
@@ -36,7 +37,9 @@ namespace WizardMatch
                 for (int j = 0; j < playFieldTokens.GetLength(1); j++)
                 {
                     if (playFieldTokens[i,j] && playFieldTokens[i,j].tokenState == TokenState.IDLE)
+                    {
                         boardIsStill = true;
+                    }
                     else
                     {
                         boardIsStill = false;
@@ -132,6 +135,7 @@ namespace WizardMatch
         public void BreakAndScore()
         {
             List<WizardToken> specialTokens = new List<WizardToken>();
+            matchCombo++;
             
             foreach(WizardToken token in matchedTokens)
             {
@@ -147,11 +151,11 @@ namespace WizardMatch
             }
             else if (matchedTokens.Count >= 10 && matchedTokens.Count < 15)
             {
-                specialTokenModifier += 2;
+                specialTokenModifier += 3;
             }
             else if (matchedTokens.Count >= 15)
             {
-                specialTokenModifier += 3;
+                specialTokenModifier += 5;
             }
 
             tokensToCheckAfterMatch.Clear();

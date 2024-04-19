@@ -17,25 +17,42 @@ namespace WizardMatch
         public List<CharacterData> spawnableEnemies = new List<CharacterData>();
         public List<Character> characterQueue = new List<Character>();
         public Character currentActiveCharacter;
+        public LevelInfo levelInfo;
 
-        public int matchCombo = 0;
+        [SerializeField] private List<GameObject> characterCards = new List<GameObject>();
+
         public int turn = 0;
 
-        public Vector3[] startingFriendlyPositions = 
+
+        void Awake()
         {
-            new Vector3(-1f,2.25f,0f),
-            new Vector3(-1.75f,3.0f,0f),
-            new Vector3(-2.25f,2f,0)        
-        };
-
-        public Vector3[] startingEnemyPositions = 
+            SpawnCharacters();
+        }
+        void Update()
         {
-            new Vector3(1f,2.25f,0f),
-            new Vector3(1.75f,3.0f,0f),
-            new Vector3(2.25f,2f,0)        
-        };
+            
+        }
+        public void SpawnCharacters()
+        {
+            if (levelInfo.spawnPositions.Count != levelInfo.spawnableCharacters.Count)
+            {
+                Debug.LogError("ERROR : Spawn List " + levelInfo.SpawnlistName + " has incongruent counts for positions and characters!");
+            }
 
-
+            for(int i = 0; i < levelInfo.spawnableCharacters.Count; i++)
+            {
+                GameObject obj = Instantiate(levelInfo.spawnableCharacters[i],levelInfo.spawnPositions[i],Quaternion.identity);
+                Character cha = obj.GetComponentInChildren<Character>();
+                if (cha.characterData.characterType == CharacterType.PLAYER)
+                {
+                    friendlies.Add(cha);
+                }
+                else
+                {
+                    enemies.Add(cha);
+                }
+            }
+        }
         public void InitializeCharacterManager()
         {
             List<Character> characters = new List<Character>();
@@ -46,20 +63,17 @@ namespace WizardMatch
             AdvanceTurn();
             currentActiveCharacter.targetCharacter = FindTargetCharacter(enemies);
 
-        }
-        void OnEnable()
-        {
-            MainGameManager.OnClear += OnClear;
-        }
-        void OnDisable()
-        {
-            MainGameManager.OnClear -= OnClear;
+            foreach(GameObject card in characterCards)
+            {
+                card.GetComponentInChildren<HudEnemyHealthBar>().character = friendlies[0];
+                card.GetComponent<GenericFader>().StartFade();
+                card.SetActive(true);
+                
+            }
+
         }
 
-        void Update()
-        {
-            
-        }
+
         /// <summary>
         /// If all characters are idle, return true.
         /// </summary>
@@ -76,13 +90,8 @@ namespace WizardMatch
             }
             return true;
         }
-        /// <summary>
-        /// Called each time the board clears tokens. 
-        /// </summary>
-        void OnClear()
-        {
-            matchCombo++;
-        }
+
+
         /// <summary>
         /// Execute the attack animation for the current active character.
         /// </summary>
@@ -101,7 +110,6 @@ namespace WizardMatch
                 return;
             if (currentActiveCharacter)
                 currentActiveCharacter.ResetModifiers();
-            matchCombo = 0;
             turn++;
 
             currentActiveCharacter = characterQueue.ElementAt(0);

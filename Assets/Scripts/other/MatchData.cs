@@ -76,6 +76,7 @@ namespace WizardMatch
         WAIT_GENERAL,
         ENEMY_ATTACKING,
         FRIENDLY_ATTACKING,
+        WIN,
         NONE
     };
     public enum CharacterType

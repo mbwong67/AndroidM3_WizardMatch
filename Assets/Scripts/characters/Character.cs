@@ -18,6 +18,7 @@ namespace WizardMatch
         DEFENDING, // unknown if needed.
         DAMAGE,
         DYING,
+        DEAD,
         OTHER,
         NONE
     }
@@ -30,7 +31,6 @@ namespace WizardMatch
     /// Big class to (hopefully) fully encompass all things a character can do. Contains methods for adjusting
     /// stats, playing and calling animation events, and affecting other characters.
     /// </summary>
-    [RequireComponent(typeof(Animator))]
     
     public class Character : MonoBehaviour , IAnimatable
     {
@@ -130,16 +130,26 @@ namespace WizardMatch
         }
         public int GetDamageToDeal()
         {
-            return atk * atkModifier + damageBonus;
+            return atk * (atkModifier + damageBonus);
         }
 
         public void PlayAnimation(string animation)
         {
-            if (animation == "Attack" && characterData.characterType != CharacterType.PLAYER)
-                characterAnimator.Play("EnemyAttack");
-            else
-                characterAnimator.Play(animation);
-            
+            switch(animation)
+            {
+                case "Attack" :
+                    if (currentCharacterAbility == CharacterAbility.ULTIMATE)
+                    {
+                        characterAnimator.Play("UltimateAttack");
+                        currentCharacterAbility = CharacterAbility.ATTACK;
+                    }
+                    else
+                        characterAnimator.Play("Attack");
+                    break;
+                default :
+                    characterAnimator.Play(animation);
+                    break;
+            }
         }
 
         public void OnAnimationFinish(string animation)
@@ -162,6 +172,7 @@ namespace WizardMatch
                 case "Death" : 
                     // some other logic here to notify death.
                     Debug.Log("dead!!");
+                    characterState = CharacterState.DEAD;
                     break;
                 default :
                     Debug.Log("Animation " + animation + " has no switch case!");

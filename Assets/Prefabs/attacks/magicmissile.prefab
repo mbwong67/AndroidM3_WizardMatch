@@ -51,6 +51,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   _boxCol: {fileID: 6730557770908436977}
+  _popup: {fileID: 6380379153957256309, guid: cbc1b3b08e807d8409a7f15ab785f7ca, type: 3}
   projectile: {fileID: 7713019817321589717}
 --- !u!1 &7713019817321589717
 GameObject:

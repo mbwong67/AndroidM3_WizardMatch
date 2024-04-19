@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b54d14344116b24aa275963cf93a91e, type: 3}
+  m_Name: sample
+  m_EditorClassIdentifier: 
+  spawnableCharacters:
+  - {fileID: 3695588014704235393, guid: c19ec6c7c20875249af39737acf6cf36, type: 3}
+  - {fileID: 5048933132742276600, guid: f0e0158e7b778fd429c913b5d6ea46ba, type: 3}
+  spawnPositions:
+  - {x: -1, y: 2.25, z: 0}
+  - {x: 1.5, y: 2, z: 0}
+  SpawnlistName: Sample

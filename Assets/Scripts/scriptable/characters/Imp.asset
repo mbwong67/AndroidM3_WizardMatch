@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CharacterElement: 1
   characterType: 1
-  attacks: []
+  attacks:
+  - {fileID: 2134563015160311519, guid: 7cdd9d3775791b64b9d983f7886bcaef, type: 3}
   characterName: Imp
   characterLevel: 1
-  baseHP: 15
+  baseHP: 5000
   baseATK: 1
   baseDEF: 0

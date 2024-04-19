@@ -15,9 +15,12 @@ namespace WizardMatch
         [SerializeField] public Character targetCharacter;
         [SerializeField] protected LayerMask _filter;
         [SerializeField] protected BoxCollider2D _boxCol;
+        [SerializeField] protected GameObject _popup;
 
         public void DealDamage()
         {
+            var obj = Instantiate(_popup,_boxCol.transform.position,Quaternion.identity);
+            obj.GetComponent<DamagePopup>().SetDamageNumber(dmg);
             OnAttackComplete();
             targetCharacter.AddToStat(-dmg,"HP");
             targetCharacter.PlayAnimation("Damage");

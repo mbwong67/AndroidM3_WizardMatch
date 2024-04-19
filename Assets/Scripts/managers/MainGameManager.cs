@@ -19,17 +19,19 @@ namespace WizardMatch
         public static event Released OnRelease = delegate{};
         public GameState MainGameState;
         
-        [SerializeField] private BlackScreenFader _fader;
         [SerializeField] public GameBoard gameBoard;
         [SerializeField] public PlayfieldCharacterManager characterManager;
         
+        [SerializeField] private BlackScreenFader _fader;
         [SerializeField] private GameObject _selectedToken;
+        [SerializeField] private SpecialAttack _specialAttack;
         [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
 
         private WizardToken[] _swipedTokensThisMove = new WizardToken[2];
         private Vector2 _touchScreenPosition;
         private Vector2 _pointLastTouched;
         private WizardMatchControls _controls;
+        private Timer _generalTimer = new Timer(5.0f);
         void Awake()
         {
             Application.targetFrameRate = 60;
@@ -55,10 +57,7 @@ namespace WizardMatch
             switch(animation)
             {
                 case "Death" :
-                    if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.PLAYER)
-                        Debug.Log("Game Over!");
-                    else
-                        Debug.Log("Enemy dead lolololol");
+                    Debug.Log("someone died wooooah");
                     break;
             }
         }
@@ -72,14 +71,38 @@ namespace WizardMatch
             characterManager.currentActiveCharacter.OnCharacterAnimationFinish -= CharacterAnimationFinish;
 
         }
+        bool CheckEnemiesForDeath()
+        {
+            foreach (Character c in characterManager.enemies)
+            {
+                if (c.characterState != CharacterState.DEAD)
+                    return false;
+            }
+            foreach(Character c in characterManager.friendlies)
+                        c.PlayAnimation("Win");
+            return true;
+        }
         void Update()
         {
             switch(MainGameState)
             {
                 case GameState.READY :
+                    HandleInput();
+                    gameBoard.matchCombo = 0;
+                    
+                    // bad and terrible but I want this done yesterday
+
+                    if (_specialAttack.currentCharge == _specialAttack.fullCharge && characterManager.friendlies[0].currentCharacterAbility == CharacterAbility.ATTACK)
+                    {
+                        characterManager.friendlies[0].PlayAnimation("UltimateStart");
+                        characterManager.friendlies[0].currentCharacterAbility = CharacterAbility.ULTIMATE;
+                    }
                     if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
                             MainGameState = GameState.ENEMY_TURN;
-                    HandleInput();
+                    if (CheckEnemiesForDeath())
+                    {
+                        MainGameState = GameState.WIN;
+                    }
                     break;
                 case GameState.CHECK_SWIPE :
                     CheckSwipe();
@@ -110,6 +133,7 @@ namespace WizardMatch
                     else
                     {
                         MainGameState = GameState.FRIENDLY_ATTACKING;
+                        _specialAttack.currentCharge += characterManager.currentActiveCharacter.GetDamageToDeal();
                         characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
 
                         characterManager.Execute();
@@ -122,6 +146,11 @@ namespace WizardMatch
                 {
                     break;
                 }
+                case GameState.WIN : 
+                {
+
+                    break;
+                }
 
                 // wait until all characters are still and the board is stationary. at this point, resume to READY.
                 case GameState.WAIT_GENERAL :
@@ -130,6 +159,8 @@ namespace WizardMatch
                         MainGameState = GameState.READY;
                         characterManager.AdvanceTurn();
                     }
+                    if (CheckEnemiesForDeath())
+                        MainGameState = GameState.WIN;
                     break;
                 // for when the enemy needs to attack. 
                 case GameState.ENEMY_TURN : 
@@ -156,7 +187,17 @@ namespace WizardMatch
             
             Character cur = characterManager.currentActiveCharacter;
             cur.atkModifier = gameBoard.specialTokenModifier;
-            cur.damageBonus = characterManager.matchCombo - 1;
+            int combo = gameBoard.matchCombo - 1;
+            int finalBonus;
+
+            if (combo >= 0 && combo < 2)
+                finalBonus = 0;
+            else if (combo >= 2 && combo < 5)
+                finalBonus = 1;
+            else
+                finalBonus = 2;
+
+            cur.damageBonus = finalBonus;
         }
 
         /// <summary>

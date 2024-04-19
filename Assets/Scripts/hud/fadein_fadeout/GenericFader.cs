@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using WizardMatch;
 /// <summary>
@@ -8,8 +9,14 @@ public class GenericFader : MonoBehaviour
 {
     public float seconds = 1.0f;
     public Timer fadeTimer;
-    bool fade = false;
-    [SerializeField] List<SpriteRenderer> _sprites;
+    
+    [SerializeField] private bool fade = false;
+
+    [SerializeField] private bool fadeIn = false;
+
+    [SerializeField] private List<SpriteRenderer> _sprites;
+    [SerializeField] private List<TextMeshPro> _texts;
+
 
     void Awake()
     {
@@ -39,8 +46,20 @@ public class GenericFader : MonoBehaviour
         foreach(SpriteRenderer s in _sprites)
         {
             Color c = s.color;
-            s.color = new Color(c.r,c.g,c.b,t);
+            if (fadeIn)
+                s.color = new Color (c.r,c.g,c.b, 1.0f - t);
+            else
+                s.color = new Color(c.r,c.g,c.b,t);
         }
+        foreach(TextMeshPro te in _texts)
+        {
+            Color c = te.color;
+            if (fadeIn)
+                te.color = new Color (c.r,c.g,c.b, 1.0f - t);
+            else
+                te.color = new Color(c.r,c.g,c.b,t);
+        }
+
     }
     public void ResetFader(float value = 1.0f)
     {
