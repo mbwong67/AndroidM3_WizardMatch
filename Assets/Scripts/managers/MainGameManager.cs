@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -37,7 +38,7 @@ namespace WizardMatch
             Application.targetFrameRate = 60;
             MainGameState = GameState.READY;
             _controls = new WizardMatchControls();            
-            _controls.Touch.Tap.canceled += context => CancelGrabOfToken();
+            _controls.Touch.Tap.canceled += context => CancelGrab();
             _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
         }
         void Initialize()
@@ -90,13 +91,6 @@ namespace WizardMatch
                     HandleInput();
                     gameBoard.matchCombo = 0;
                     
-                    // bad and terrible but I want this done yesterday
-
-                    if (_specialAttack.currentCharge == _specialAttack.fullCharge && characterManager.friendlies[0].currentCharacterAbility == CharacterAbility.ATTACK)
-                    {
-                        characterManager.friendlies[0].PlayAnimation("UltimateStart");
-                        characterManager.friendlies[0].currentCharacterAbility = CharacterAbility.ULTIMATE;
-                    }
                     if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
                             MainGameState = GameState.ENEMY_TURN;
                     if (CheckEnemiesForDeath())
@@ -232,6 +226,7 @@ namespace WizardMatch
                 if (token && token.tokenState == TokenState.MOVING)
                     return;
             }
+            bool touchingSpecialAttack = false;
             // check to see if the point we've touched is actually a token or not.
             if (_controls.Touch.Tap.triggered)
             {
@@ -242,10 +237,24 @@ namespace WizardMatch
                 
                 if (!hit.collider) return; // if we didn't actually tap anything that was a token, return.
                 
-                _selectedToken = hit.collider.gameObject;
-                _selectedToken.GetComponent<WizardToken>().PlayAnimation("Pulsate");
+                int magicNum = 1 << hit.collider.gameObject.layer;
+                int otherMagicNum = 1 << _specialAttack.gameObject.layer;
+
+                if (magicNum == otherMagicNum)
+                {
+                    touchingSpecialAttack = true;
+                }
+                else
+                {
+                    _selectedToken = hit.collider.gameObject;
+                    _selectedToken.GetComponent<WizardToken>().PlayAnimation("Pulsate");
+                }
             }
-            
+            if (touchingSpecialAttack)
+            {
+                HandleSuperAttack(_specialAttack.gameObject);
+                return;
+            }
             Vector2 screenPosOfToken = _selectedToken ? Camera.main.WorldToScreenPoint(_selectedToken.transform.position) : _touchScreenPosition;
             Vector2 direction = (_touchScreenPosition - screenPosOfToken).normalized;
             
@@ -254,7 +263,7 @@ namespace WizardMatch
 
             // if we now have a valid selected token, and the position between our last tapped position
             // and our current screen position is greater than some threshold, commence a swipe.
-            if (_selectedToken && Vector2.Distance(_pointLastTouched,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta)
+            if (_selectedToken && DetermineIfDistanceIsTooFarFromInitialTouch())
             {
                 WizardToken token = _selectedToken.GetComponent<WizardToken>();
                 WizardToken neighborToken = null;
@@ -298,15 +307,32 @@ namespace WizardMatch
                 _swipedTokensThisMove[1] = neighborToken;
 
 
-                CancelGrabOfToken();
+                CancelGrab();
                 MainGameState = GameState.CHECK_SWIPE;
         }}
+        
+        bool DetermineIfDistanceIsTooFarFromInitialTouch()
+        {
+            return Vector2.Distance(_pointLastTouched,_touchScreenPosition) > _minimumRequiredScreenSwipeDelta;
+        }
+
+        void HandleSuperAttack(GameObject gameObject)
+        {
+            var obj = gameObject.GetComponent<SpecialAttack>();
+            obj.PlayAnimation("Pulsate",1);
+            obj.isTouched = true;
+        }
         void CheckSwipe()
         {
             gameBoard.ResetTokens();
             // two simple checks to make sure our tokens are both there, and aren't moving. if so, don't run checks just yet. 
             if (!_swipedTokensThisMove[0]  || !_swipedTokensThisMove[1])
+            {
+                // in this specific case, the only way we could get here is if we cancel a swipe with no other token neighbor.
+                // we must then return to READY
+                MainGameState = GameState.READY;
                 return;
+            }
             if (_swipedTokensThisMove[0].tokenState == TokenState.MOVING || _swipedTokensThisMove[1].tokenState == TokenState.MOVING)
                 return;
             
@@ -331,13 +357,24 @@ namespace WizardMatch
                 MainGameState = stateIfSoIsTrue;
             }
         }
-        void CancelGrabOfToken()
+        void CancelGrab()
         {
-            if (_selectedToken)
+            if (_selectedToken != null)
                 _selectedToken.GetComponent<WizardToken>().PlayAnimation("Reset");
+            
+            if (_specialAttack.isTouched)
+            {
+                if(_specialAttack.currentCharge == _specialAttack.fullCharge)
+                {
+                    _specialAttack.PressButton();
+                    Debug.Log("deed is done!!");
+                    var sandra = FindFirstObjectByType<Sandra>();
+                    sandra.PlayAnimation("UltimateStart");
+                }
+                _specialAttack.isTouched = false;
+                _specialAttack.PlayAnimation("Cancel",1);
+            }
             _selectedToken = null;
-
-            OnRelease();
         }
     }
 }

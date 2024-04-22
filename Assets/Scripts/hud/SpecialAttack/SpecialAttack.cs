@@ -5,15 +5,20 @@ using UnityEngine;
 
 namespace WizardMatch
 {
-    public class SpecialAttack : MonoBehaviour
+    public class SpecialAttack : MonoBehaviour, IAnimatable
     {
         [SerializeField] public int currentCharge;
         [SerializeField] public int fullCharge;
+        // is very very very bad. this should never have been done. don't do this ever again
+        // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+        [SerializeField] public bool isTouched = false;
         [SerializeField] public GameObject specialButton;
+
+        [SerializeField] public BoxCollider2D _specialButtonHitbox;
+        [SerializeField] private Animator _animator;
         [SerializeField] private Color _loopColor;
         [SerializeField] private SpriteRenderer _specialButtonSprite;
         [SerializeField] private ScalingBar _scaleBar;
-        [SerializeField] private Animator _animator;
 
         private Timer _colorTimer = new Timer(2.0f);
 
@@ -58,8 +63,26 @@ namespace WizardMatch
         }
         public void PressButton()
         {
-            currentCharge = 0;
+            if (currentCharge == fullCharge && isTouched)
+            {
+                _animator.Play("Cancel",1);
+                currentCharge = 0;
+            }
         }
 
+        public void PlayAnimation(string animation, int layer = 0)
+        {
+            _animator.Play(animation,layer);
+        }
+
+        public void OnAnimationFinish(string animation)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void OnAnimationBegin(string animation)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

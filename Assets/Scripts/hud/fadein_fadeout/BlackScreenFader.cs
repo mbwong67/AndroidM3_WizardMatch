@@ -22,7 +22,7 @@ namespace WizardMatch
             _blackSprite = GetComponent<SpriteRenderer>();
             _animator = GetComponent<Animator>();
         }
-        public void PlayAnimation(string animation)
+        public void PlayAnimation(string animation, int layer = 0)
         {
             _animator.Play(animation);
         }

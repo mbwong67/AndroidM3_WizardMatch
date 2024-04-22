@@ -9,14 +9,22 @@ namespace WizardMatch
     /// </summary>
     public class Sandra : Character
     {
-
-        [SerializeField] public bool UltimateAttackReady;
-
         void Update()
         {
-            if (UltimateAttackReady)
+            MonitorState();
+        }
+        void MonitorState()
+        {
+            switch (currentCharacterAbility)
             {
-                
+                case CharacterAbility.ATTACK :
+                    characterAnimator.SetLayerWeight(1,1);
+                    characterAnimator.SetLayerWeight(2,0);
+                    break;
+                case CharacterAbility.ULTIMATE :
+                    characterAnimator.SetLayerWeight(1,0);
+                    characterAnimator.SetLayerWeight(2,1);
+                    break;
             }
         }
     }

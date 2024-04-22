@@ -194,7 +194,7 @@ namespace WizardMatch
             ForceMove(transform.position,newPosition);
         }
 
-        public void PlayAnimation(string animation)
+        public void PlayAnimation(string animation, int layer = 0)
         {
             if (_animator != null)
                 _animator.Play(animation);

@@ -4,7 +4,7 @@
 /// </summary>
 public interface IAnimatable
 {
-    public void PlayAnimation(string animation);
+    public void PlayAnimation(string animation, int layer = 0);
     public void OnAnimationFinish(string animation);
     public void OnAnimationBegin(string animation);
     

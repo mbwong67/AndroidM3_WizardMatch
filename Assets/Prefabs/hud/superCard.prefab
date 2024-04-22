@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8924582549459711370}
   - component: {fileID: 3997383445381093209}
   - component: {fileID: 5849473131450849042}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: superCard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -34,7 +34,7 @@ Transform:
   - {fileID: 5825295082863981021}
   - {fileID: 3802859734410959421}
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3997383445381093209
 MonoBehaviour:
@@ -51,10 +51,11 @@ MonoBehaviour:
   currentCharge: 0
   fullCharge: 100
   specialButton: {fileID: 7274935503281871422}
+  _specialButtonHitbox: {fileID: 7150768737840371314}
+  _animator: {fileID: 5849473131450849042}
   _loopColor: {r: 0, g: 0, b: 0, a: 0}
   _specialButtonSprite: {fileID: 7735375383545182314}
   _scaleBar: {fileID: 3662544664318913415}
-  _animator: {fileID: 5849473131450849042}
 --- !u!95 &5849473131450849042
 Animator:
   serializedVersion: 5
@@ -87,7 +88,7 @@ GameObject:
   - component: {fileID: 8331543463114139365}
   - component: {fileID: 5766089454168602595}
   - component: {fileID: 1118778015814913617}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -258,7 +259,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1831052498363138679}
   - component: {fileID: 6523074429951609238}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: border
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -343,7 +344,7 @@ GameObject:
   - component: {fileID: 8507173058267897577}
   - component: {fileID: 7735375383545182314}
   - component: {fileID: 7150768737840371314}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -474,7 +475,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3802859734410959421}
   - component: {fileID: 5516067420176212836}
-  m_Layer: 0
+  m_Layer: 5
   m_Name: bg
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -576,6 +577,14 @@ PrefabInstance:
       propertyPath: defaultBarColor.a
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4289773508712668018, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5233921030983625510, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 6401678956064850300, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
       propertyPath: m_RootOrder
       value: -1
@@ -620,9 +629,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7343359786851248424, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
+      propertyPath: m_Layer
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 8768792394945459521, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
       propertyPath: m_Name
       value: FillBar
+      objectReference: {fileID: 0}
+    - target: {fileID: 8768792394945459521, guid: 333cb4fa4d9b9464698f8e35dbc99edf, type: 3}
+      propertyPath: m_Layer
+      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -74,8 +74,9 @@ namespace WizardMatch
                 TryGetComponent(out Animator a);
                 characterAnimator = a;
             }
-            
-            
+
+            characterAnimator.SetLayerWeight(1,1);
+
             // safeguard in case any of the stats were changed in the inspector, we 
             // still use those stats instead of the ones given by the data.
 
@@ -133,18 +134,16 @@ namespace WizardMatch
             return atk * (atkModifier + damageBonus);
         }
 
-        public void PlayAnimation(string animation)
+        public void PlayAnimation(string animation, int layer = 0)
         {
             switch(animation)
             {
+                // again, this is stupid. really stupid. but I want this done and over with.
                 case "Attack" :
-                    if (currentCharacterAbility == CharacterAbility.ULTIMATE)
-                    {
-                        characterAnimator.Play("UltimateAttack");
-                        currentCharacterAbility = CharacterAbility.ATTACK;
-                    }
+                    if (currentCharacterAbility == CharacterAbility.ATTACK)
+                        characterAnimator.Play(animation);
                     else
-                        characterAnimator.Play("Attack");
+                        characterAnimator.Play("UltimateAttack");
                     break;
                 default :
                     characterAnimator.Play(animation);
@@ -167,12 +166,14 @@ namespace WizardMatch
                     }
                     else
                         characterState = CharacterState.IDLE;
-
                     break;
                 case "Death" : 
                     // some other logic here to notify death.
                     Debug.Log("dead!!");
                     characterState = CharacterState.DEAD;
+                    break;
+                case "UltimateStart" :
+                    currentCharacterAbility = CharacterAbility.ULTIMATE;
                     break;
                 default :
                     Debug.Log("Animation " + animation + " has no switch case!");
@@ -192,11 +193,11 @@ namespace WizardMatch
                 case CharacterAbility.ATTACK :
                     obj = Instantiate(characterData.attacks[0],transform.position,Quaternion.identity).GetComponent<AttackHitbox>();
                     break;
-                case CharacterAbility.SUPPORT :
-                    obj = Instantiate(characterData.attacks[1],transform.position,Quaternion.identity).GetComponent<AttackHitbox>();
-                    break;
                 case CharacterAbility.ULTIMATE :
                     obj = Instantiate(characterData.attacks[2],transform.position,Quaternion.identity).GetComponent<AttackHitbox>();
+                    break;
+                case CharacterAbility.SUPPORT :
+                    obj = Instantiate(characterData.attacks[1],transform.position,Quaternion.identity).GetComponent<AttackHitbox>();
                     break;
                 case CharacterAbility.OTHER :
                     break;
@@ -219,6 +220,10 @@ namespace WizardMatch
                     characterState = CharacterState.DAMAGE;
                     break;
             }
+        }
+        public void SwitchCurrentAbility(CharacterAbility ability)
+        {
+            currentCharacterAbility = ability;
         }
     }
 }
