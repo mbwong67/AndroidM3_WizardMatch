@@ -89,8 +89,6 @@ namespace WizardMatch
             {
                 case GameState.READY :
                     HandleInput();
-                    gameBoard.matchCombo = 0;
-                    Debug.Log("reset to 0");
                     
                     if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
                             MainGameState = GameState.ENEMY_TURN;
@@ -128,11 +126,14 @@ namespace WizardMatch
                     else
                     {
                         MainGameState = GameState.FRIENDLY_ATTACKING;
-                        _specialAttack.currentCharge += characterManager.currentActiveCharacter.GetDamageToDeal();
-                        characterManager.currentActiveCharacter.OnCharacterAnimationFinish += OnAttackFinish;
+                        
+                        Character cur = characterManager.currentActiveCharacter;
+                        DetermineDamageModifiers(cur);
+                        
+                        _specialAttack.currentCharge += cur.GetDamageToDeal();
 
+                        cur.OnCharacterAnimationFinish += OnAttackFinish;
                         characterManager.Execute();
-                        gameBoard.specialTokenModifier = 1;
                     }
                     break;
                 // dead state. must change from outside sources. 
@@ -152,6 +153,10 @@ namespace WizardMatch
                     if (characterManager.AllCharactersAreStill() && gameBoard.boardIsStill)
                     {
                         MainGameState = GameState.READY;
+                        gameBoard.matchCombo = 0;
+                        gameBoard.tokenCombo = 0;
+                        gameBoard.specialTokenModifier = 1;
+
                         characterManager.AdvanceTurn();
                     }
                     if (CheckEnemiesForDeath())
@@ -171,6 +176,39 @@ namespace WizardMatch
             }
         }
 
+        void DetermineDamageModifiers(Character c)
+        {
+            int combo = gameBoard.matchCombo - 1;
+            int finalComboBonus = 0;
+
+            if (combo >= 1 && combo < 2)
+                finalComboBonus = 1;
+            else if (combo >= 2 && combo < 5)
+                finalComboBonus += 2;
+            else
+                finalComboBonus += 3;
+
+            int tokenCount = gameBoard.tokenCombo;
+            int finalTokenBonus = 0;
+
+            if (tokenCount >= 3 && tokenCount < 6)
+                finalTokenBonus = 1;
+            
+            
+            if (tokenCount >= 6 && tokenCount < 9)
+                finalTokenBonus = 2;
+            else if (tokenCount >= 9 && tokenCount < 15)
+                finalTokenBonus = 3;
+            else if (tokenCount >= 15 && tokenCount < 21)
+                finalTokenBonus = 5;
+            else
+                finalTokenBonus = 7;
+            
+
+            c.comboBonus = finalComboBonus;
+            c.tokenBonus = finalTokenBonus;
+            c.atkModifier = gameBoard.specialTokenModifier;
+        }
         /// <summary>
         /// Prep active character's damage numbers, break tokens on board. 
         /// </summary>
@@ -180,20 +218,7 @@ namespace WizardMatch
             
             gameBoard.BreakAndScore();
             
-            Character cur = characterManager.currentActiveCharacter;
-            cur.atkModifier = gameBoard.specialTokenModifier;
-            int combo = gameBoard.matchCombo - 1;
-            int finalBonus = combo;
-            Debug.Log("Combo : " + combo + " : Final Bonus : " + finalBonus);  
 
-            if (combo >= 0 && combo < 2)
-                finalBonus = 0;
-            else if (combo >= 2 && combo < 5)
-                finalBonus = 1;
-            else
-                finalBonus = 2;
-
-            cur.damageBonus = finalBonus;
         }
 
         /// <summary>

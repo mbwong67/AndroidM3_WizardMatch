@@ -55,8 +55,18 @@ namespace WizardMatch
         /// </summary>
         public int defaultLayer = 0;
 
+        /// <summary>
+        /// Modifier added to other bonuses depending on the highest scoring token broken.
+        /// </summary>
         public int atkModifier = 1;
-        public int damageBonus = 0;
+        /// <summary>
+        /// Bonus damage resulting from how many cascades happen in a row.
+        /// </summary>
+        public int comboBonus = 0;
+        /// <summary>
+        /// Bonus calculated by number of tokens broken this turn. 
+        /// </summary>
+        public int tokenBonus = 0;
         public int hp = 0;
         public int atk = 0;
         public int def = 0;
@@ -126,11 +136,12 @@ namespace WizardMatch
         public void ResetModifiers()
         {
             atkModifier = 1;
-            damageBonus = 0;
+            comboBonus = 0;
+            tokenBonus = 0;
         }
         public int GetDamageToDeal()
         {
-            return atk * (atkModifier + damageBonus);
+            return atkModifier * (atk + comboBonus * tokenBonus);
         }
 
         public void PlayAnimation(string animation, int layer = -1)
@@ -193,6 +204,8 @@ namespace WizardMatch
         public void SpawnHitbox()
         {
             AttackHitbox obj = null;
+            Debug.Log(GetDamageToDeal());
+
             switch (currentCharacterAbility)
             {
                 case CharacterAbility.ATTACK :
@@ -207,6 +220,7 @@ namespace WizardMatch
                 case CharacterAbility.OTHER :
                     break;
             }
+            Debug.Log(GetDamageToDeal());
             obj.dmg = GetDamageToDeal();
             obj.targetCharacter = targetCharacter;
         }
