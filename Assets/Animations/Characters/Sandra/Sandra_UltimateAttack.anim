@@ -31492,7 +31492,7 @@ AnimationClip:
   m_Events:
   - time: 0
     functionName: OnAnimationBegin
-    data: Ultimate
+    data: UltimateAttack
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
@@ -31506,7 +31506,7 @@ AnimationClip:
     messageOptions: 0
   - time: 1.1666666
     functionName: OnAnimationFinish
-    data: Ultimate
+    data: UltimateAttack
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0

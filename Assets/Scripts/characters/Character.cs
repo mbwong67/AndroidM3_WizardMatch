@@ -22,11 +22,6 @@ namespace WizardMatch
         OTHER,
         NONE
     }
-    public static class CharacterEventManager 
-    {
-        public delegate void PerformAction(Character character);
-        public static event PerformAction Performed = delegate{};
-    }
     /// <summary>
     /// Big class to (hopefully) fully encompass all things a character can do. Contains methods for adjusting
     /// stats, playing and calling animation events, and affecting other characters.
@@ -55,6 +50,10 @@ namespace WizardMatch
         public CharacterAbility currentCharacterAbility = CharacterAbility.ATTACK;
         public CharacterState characterState;
         public Animator characterAnimator;
+        /// <summary>
+        /// The current usable layer used for animations
+        /// </summary>
+        public int defaultLayer = 0;
 
         public int atkModifier = 1;
         public int damageBonus = 0;
@@ -62,7 +61,7 @@ namespace WizardMatch
         public int atk = 0;
         public int def = 0;
 
-        void Awake()
+        protected void Awake()
         {
             if (!characterData)
             {
@@ -75,7 +74,7 @@ namespace WizardMatch
                 characterAnimator = a;
             }
 
-            characterAnimator.SetLayerWeight(1,1);
+            characterAnimator.SetLayerWeight(defaultLayer,1);
 
             // safeguard in case any of the stats were changed in the inspector, we 
             // still use those stats instead of the ones given by the data.
@@ -134,19 +133,21 @@ namespace WizardMatch
             return atk * (atkModifier + damageBonus);
         }
 
-        public void PlayAnimation(string animation, int layer = 0)
+        public void PlayAnimation(string animation, int layer = -1)
         {
+            int l = layer == -1 ? defaultLayer : 0;
+            
             switch(animation)
             {
                 // again, this is stupid. really stupid. but I want this done and over with.
                 case "Attack" :
                     if (currentCharacterAbility == CharacterAbility.ATTACK)
-                        characterAnimator.Play(animation);
+                        characterAnimator.Play(animation,l);
                     else
-                        characterAnimator.Play("UltimateAttack");
+                        characterAnimator.Play("UltimateAttack",l);
                     break;
                 default :
-                    characterAnimator.Play(animation);
+                    characterAnimator.Play(animation,l);
                     break;
             }
         }
@@ -174,6 +175,10 @@ namespace WizardMatch
                     break;
                 case "UltimateStart" :
                     currentCharacterAbility = CharacterAbility.ULTIMATE;
+                    break;
+                case "UltimateAttack" : 
+                    currentCharacterAbility = CharacterAbility.ATTACK;
+                    PlayAnimation("Idle",1);
                     break;
                 default :
                     Debug.Log("Animation " + animation + " has no switch case!");

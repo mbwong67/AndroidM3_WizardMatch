@@ -90,6 +90,7 @@ namespace WizardMatch
                 case GameState.READY :
                     HandleInput();
                     gameBoard.matchCombo = 0;
+                    Debug.Log("reset to 0");
                     
                     if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
                             MainGameState = GameState.ENEMY_TURN;
@@ -137,7 +138,7 @@ namespace WizardMatch
                 // dead state. must change from outside sources. 
                 case GameState.FRIENDLY_ATTACKING :
                 case GameState.ENEMY_ATTACKING :
-                {
+                { 
                     break;
                 }
                 case GameState.WIN : 
@@ -182,7 +183,8 @@ namespace WizardMatch
             Character cur = characterManager.currentActiveCharacter;
             cur.atkModifier = gameBoard.specialTokenModifier;
             int combo = gameBoard.matchCombo - 1;
-            int finalBonus;
+            int finalBonus = combo;
+            Debug.Log("Combo : " + combo + " : Final Bonus : " + finalBonus);  
 
             if (combo >= 0 && combo < 2)
                 finalBonus = 0;

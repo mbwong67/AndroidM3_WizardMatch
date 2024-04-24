@@ -9,6 +9,12 @@ namespace WizardMatch
     /// </summary>
     public class Sandra : Character
     {
+        new void Awake()
+        {
+            Debug.Log("Sandra Awake");
+            defaultLayer = 1;
+            base.Awake();
+        }
         void Update()
         {
             MonitorState();
@@ -20,12 +26,18 @@ namespace WizardMatch
                 case CharacterAbility.ATTACK :
                     characterAnimator.SetLayerWeight(1,1);
                     characterAnimator.SetLayerWeight(2,0);
+                    defaultLayer = 1;
                     break;
                 case CharacterAbility.ULTIMATE :
                     characterAnimator.SetLayerWeight(1,0);
                     characterAnimator.SetLayerWeight(2,1);
+                    defaultLayer = 2;
                     break;
             }
+        }
+        public void ChangeCharacterAbility(CharacterAbility characterAbility)
+        {
+            currentCharacterAbility = characterAbility;
         }
     }
 }
