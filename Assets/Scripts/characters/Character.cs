@@ -111,7 +111,10 @@ namespace WizardMatch
                     if (hp >= characterData.baseHP)
                         hp = characterData.baseHP;
                     if (hp <= 0)
+                    {
                         hp = 0;
+                        characterState = CharacterState.DYING;
+                    }
                     break;
                 case "ATK" :
                     atk += addend;
@@ -141,7 +144,9 @@ namespace WizardMatch
         }
         public int GetDamageToDeal()
         {
-            return atkModifier * (atk + comboBonus * tokenBonus);
+            int ret = atkModifier * (atk + (comboBonus * tokenBonus));
+            // Debug.Log("Attack Modifier : " + atkModifier + " Base Attack " + atk + " + ( Combo Bonus : " + comboBonus + " * Token Bonus : " + tokenBonus + ") = " + ret);
+            return ret;
         }
 
         public void PlayAnimation(string animation, int layer = -1)
@@ -156,6 +161,15 @@ namespace WizardMatch
                         characterAnimator.Play(animation,l);
                     else
                         characterAnimator.Play("UltimateAttack",l);
+                    break;
+                case "Damage" :
+                    if (hp <= 0)
+                    {
+                        characterAnimator.Play("Death",l);
+                        characterState = CharacterState.DYING;                        
+                    }
+                    else
+                        characterAnimator.Play("Damage",l);
                     break;
                 default :
                     characterAnimator.Play(animation,l);
@@ -174,14 +188,15 @@ namespace WizardMatch
                 case "Damage" :
                     if (hp <= 0)
                     {
-                        PlayAnimation("Death");
+                        characterState = CharacterState.DYING;
+                        
                     }
                     else
                         characterState = CharacterState.IDLE;
                     break;
                 case "Death" : 
                     // some other logic here to notify death.
-                    Debug.Log("dead!!");
+                    PlayAnimation("Death");
                     characterState = CharacterState.DEAD;
                     break;
                 case "UltimateStart" :
@@ -204,7 +219,6 @@ namespace WizardMatch
         public void SpawnHitbox()
         {
             AttackHitbox obj = null;
-            Debug.Log(GetDamageToDeal());
 
             switch (currentCharacterAbility)
             {
@@ -220,7 +234,6 @@ namespace WizardMatch
                 case CharacterAbility.OTHER :
                     break;
             }
-            Debug.Log(GetDamageToDeal());
             obj.dmg = GetDamageToDeal();
             obj.targetCharacter = targetCharacter;
         }

@@ -151,7 +151,11 @@ namespace WizardMatch
                 // this specific token is a special token. it needs to be compared with its neighbors to determine how many more tokens to break. 
                 if (token.upgradeType > TokenUpgradeType.DEFAULT && !token.shouldUpgrade)
                 {
-                    specialTokenModifier = specialTokenModifier > GetSpecialTokenModifier(token) ? specialTokenModifier : GetSpecialTokenModifier(token);
+                    if (specialTokenModifier <= GetSpecialTokenModifier(token))
+                    {
+                        specialTokenModifier = GetSpecialTokenModifier(token);
+                        Debug.Log("uhm new modifier = " + specialTokenModifier);
+                    }
                     specialTokens.AddRange(AddTokensBasedOnUpgradeType(token));
                 }
             }

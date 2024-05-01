@@ -14,10 +14,12 @@ namespace WizardMatch
     {
         public List<Character> friendlies = new List<Character>();
         public List<Character> enemies = new List<Character>();
-        public List<CharacterData> spawnableEnemies = new List<CharacterData>();
         public List<Character> characterQueue = new List<Character>();
         public Character currentActiveCharacter;
         public LevelInfo levelInfo;
+
+        public Vector3 enemySpawnPosition;
+        public Vector3 friendlySpawnPosition;
 
         [SerializeField] private List<GameObject> characterCards = new List<GameObject>();
 
@@ -34,43 +36,37 @@ namespace WizardMatch
         }
         public void SpawnCharacters()
         {
-            if (levelInfo.spawnPositions.Count != levelInfo.spawnableCharacters.Count)
-            {
-                Debug.LogError("ERROR : Spawn List " + levelInfo.SpawnlistName + " has incongruent counts for positions and characters!");
-            }
+            
+            GameObject obj = Instantiate(levelInfo.spawnableEnemies[0],enemySpawnPosition,Quaternion.identity);
+            enemies.Add(obj.GetComponentInChildren<Character>());
 
-            for(int i = 0; i < levelInfo.spawnableCharacters.Count; i++)
-            {
-                GameObject obj = Instantiate(levelInfo.spawnableCharacters[i],levelInfo.spawnPositions[i],Quaternion.identity);
-                Character cha = obj.GetComponentInChildren<Character>();
-                if (cha.characterData.characterType == CharacterType.PLAYER)
-                {
-                    friendlies.Add(cha);
-                }
-                else
-                {
-                    enemies.Add(cha);
-                }
-            }
+            GameObject sandra = Instantiate(levelInfo.spawnablePlayers[0],friendlySpawnPosition,Quaternion.identity);
+            friendlies.Add(sandra.GetComponentInChildren<Character>());
+
+            currentActiveCharacter = sandra.GetComponentInChildren<Character>();
+
         }
-        public void InitializeCharacterManager()
+        public void InitializeCharacterQueue()
         {
+            characterQueue.Clear();
             List<Character> characters = new List<Character>();
             characters.AddRange(friendlies);
             characters.AddRange(enemies);
             foreach(Character character in characters)
                 characterQueue.Add(character);
-            AdvanceTurn();
             currentActiveCharacter.targetCharacter = FindTargetCharacter(enemies);
+        }
+        public void InitializeCharacterManager()
+        {
+            InitializeCharacterQueue();
+            AdvanceTurn();
 
             foreach(GameObject card in characterCards)
             {
                 card.GetComponentInChildren<HudEnemyHealthBar>().character = friendlies[0];
                 card.GetComponent<GenericFader>().StartFade();
                 card.SetActive(true);
-                
             }
-
         }
 
 
@@ -122,6 +118,7 @@ namespace WizardMatch
             {
                 case CharacterType.PLAYER :
                     currentActiveCharacter.targetCharacter = FindTargetCharacter(enemies);
+                    
                     break;
                 case CharacterType.ENEMY : 
                     currentActiveCharacter.targetCharacter = FindTargetCharacter(friendlies);
@@ -134,7 +131,7 @@ namespace WizardMatch
         /// </summary>
         /// <param name="list"></param>
         /// <returns></returns>
-        Character FindTargetCharacter(List<Character> list)
+        public Character FindTargetCharacter(List<Character> list)
         {
             var c = list[0];
             foreach(Character ch in list)

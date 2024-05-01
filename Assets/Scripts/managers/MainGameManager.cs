@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,26 +21,29 @@ namespace WizardMatch
         [SerializeField] public GameBoard gameBoard;
         [SerializeField] public PlayfieldCharacterManager characterManager;
         
+        [SerializeField] private int _currentLevel = 1;
         [SerializeField] private BlackScreenFader _fader;
         [SerializeField] private GameObject _selectedToken;
         [SerializeField] private SpecialAttack _specialAttack;
+        [SerializeField] private SkipButton _skipButton;
         [SerializeField] [Range(0.1f,200.0f)] private float _minimumRequiredScreenSwipeDelta = 10.0f;
 
         private WizardToken[] _swipedTokensThisMove = new WizardToken[2];
         private Vector2 _touchScreenPosition;
         private Vector2 _pointLastTouched;
         private WizardMatchControls _controls;
-        private Timer _generalTimer = new Timer(5.0f);
+        private Timer _generalTimer = new Timer(3.0f);
         void Awake()
         {
             Application.targetFrameRate = 60;
-            MainGameState = GameState.READY;
+            MainGameState = GameState.NONE;
             _controls = new WizardMatchControls();            
             _controls.Touch.Tap.canceled += context => CancelGrab();
             _controls.Touch.ScreenPos.performed += context => { _touchScreenPosition = context.ReadValue<Vector2>(); };
         }
         void Initialize()
         {
+            Debug.Log("woah");
             _controls.Enable();
             gameBoard.enabled = true;
             gameBoard.InitializeBoard();
@@ -52,13 +53,17 @@ namespace WizardMatch
             
             foreach(Character character in chs)
                 character.OnCharacterAnimationFinish += CharacterAnimationFinish;
+
+            MainGameState = GameState.READY;
+            _generalTimer = new Timer(3.0f);
+            _generalTimer.OnTimerEnd += AdvanceLevel;
+
         }
         void CharacterAnimationFinish(string animation)
         {
             switch(animation)
             {
                 case "Death" :
-                    Debug.Log("someone died wooooah");
                     break;
             }
         }
@@ -90,8 +95,8 @@ namespace WizardMatch
                 case GameState.READY :
                     HandleInput();
                     
-                    if (characterManager.currentActiveCharacter && characterManager.currentActiveCharacter.characterData.characterType == CharacterType.ENEMY)
-                            MainGameState = GameState.ENEMY_TURN;
+                    _skipButton.gameObject.SetActive(true);
+
                     if (CheckEnemiesForDeath())
                     {
                         MainGameState = GameState.WIN;
@@ -104,6 +109,8 @@ namespace WizardMatch
                     WaitUntilSwipedTokensStop();
                     break;
                 case GameState.MATCHING : 
+
+                    _skipButton.gameObject.SetActive(false);
                     BreakAndScore();
                     MainGameState = GameState.WAIT_FOR_CASCADE;
                     break;
@@ -139,12 +146,14 @@ namespace WizardMatch
                 // dead state. must change from outside sources. 
                 case GameState.FRIENDLY_ATTACKING :
                 case GameState.ENEMY_ATTACKING :
-                { 
+                {
+                    
+                    _skipButton.gameObject.SetActive(false);
                     break;
                 }
                 case GameState.WIN : 
                 {
-
+                    _generalTimer.Tick(Time.deltaTime);
                     break;
                 }
 
@@ -152,12 +161,17 @@ namespace WizardMatch
                 case GameState.WAIT_GENERAL :
                     if (characterManager.AllCharactersAreStill() && gameBoard.boardIsStill)
                     {
-                        MainGameState = GameState.READY;
+
                         gameBoard.matchCombo = 0;
                         gameBoard.tokenCombo = 0;
                         gameBoard.specialTokenModifier = 1;
 
                         characterManager.AdvanceTurn();
+                        if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.PLAYER)
+                            MainGameState = GameState.READY;
+                        else
+                            MainGameState = GameState.ENEMY_TURN;
+
                     }
                     if (CheckEnemiesForDeath())
                         MainGameState = GameState.WIN;
@@ -172,6 +186,8 @@ namespace WizardMatch
 
                     MainGameState = GameState.ENEMY_ATTACKING;
                     break;
+                case GameState.NONE :
+                    break;
 
             }
         }
@@ -185,7 +201,7 @@ namespace WizardMatch
                 finalComboBonus = 1;
             else if (combo >= 2 && combo < 5)
                 finalComboBonus += 2;
-            else
+            else if (combo >= 5)
                 finalComboBonus += 3;
 
             int tokenCount = gameBoard.tokenCombo;
@@ -201,7 +217,7 @@ namespace WizardMatch
                 finalTokenBonus = 3;
             else if (tokenCount >= 15 && tokenCount < 21)
                 finalTokenBonus = 5;
-            else
+            else if (tokenCount >= 21)
                 finalTokenBonus = 7;
             
 
@@ -254,6 +270,7 @@ namespace WizardMatch
                     return;
             }
             bool touchingSpecialAttack = false;
+            bool touchingSkipButton = false;
             // check to see if the point we've touched is actually a token or not.
             if (_controls.Touch.Tap.triggered)
             {
@@ -264,12 +281,19 @@ namespace WizardMatch
                 
                 if (!hit.collider) return; // if we didn't actually tap anything that was a token, return.
                 
-                int magicNum = 1 << hit.collider.gameObject.layer;
-                int otherMagicNum = 1 << _specialAttack.gameObject.layer;
 
-                if (magicNum == otherMagicNum)
+
+                int magicNum = 1 << hit.collider.gameObject.layer;
+                int specialAttackMagicNum = 1 << _specialAttack.gameObject.layer;
+                int skipButtonMagicNum = 1 << _skipButton.gameObject.layer;
+
+                if (magicNum == specialAttackMagicNum)
                 {
                     touchingSpecialAttack = true;
+                }
+                else if (magicNum == skipButtonMagicNum)
+                {
+                    touchingSkipButton = true;
                 }
                 else
                 {
@@ -277,9 +301,15 @@ namespace WizardMatch
                     _selectedToken.GetComponent<WizardToken>().PlayAnimation("Pulsate");
                 }
             }
+
             if (touchingSpecialAttack)
             {
                 HandleSuperAttack(_specialAttack.gameObject);
+                return;
+            }
+            if (touchingSkipButton)
+            {
+                HandleSkipButton(_skipButton.gameObject);
                 return;
             }
             Vector2 screenPosOfToken = _selectedToken ? Camera.main.WorldToScreenPoint(_selectedToken.transform.position) : _touchScreenPosition;
@@ -349,8 +379,17 @@ namespace WizardMatch
             obj.PlayAnimation("Pulsate",1);
             obj.isTouched = true;
         }
+        
+        void HandleSkipButton(GameObject gameObject)
+        {
+            var obj = gameObject.GetComponent<SkipButton>();
+            obj.PlayAnimation("Pulsate",1);
+            _specialAttack.currentCharge += 5;
+            obj.isTouched = true;
+        }
         void CheckSwipe()
         {
+            Character cur = characterManager.currentActiveCharacter;
             gameBoard.ResetTokens();
             // two simple checks to make sure our tokens are both there, and aren't moving. if so, don't run checks just yet. 
             if (!_swipedTokensThisMove[0]  || !_swipedTokensThisMove[1])
@@ -363,12 +402,24 @@ namespace WizardMatch
             if (_swipedTokensThisMove[0].tokenState == TokenState.MOVING || _swipedTokensThisMove[1].tokenState == TokenState.MOVING)
                 return;
             
-            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[0]);
-            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]);
 
             // if this swipe isn't valid, return as soon as possible.
+            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[0]);
+            gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]);
             if (_swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH)
             {
+                // if the current character currently doesn't have the ultimate charged, ignore however many have been matched and treat the first as 
+                // if it does.
+                if (cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
+                {
+                    _swipedTokensThisMove[0].upgradeType = TokenUpgradeType.TURBO;
+                    // also if it isn't in the running, add this token. 
+                    if (!gameBoard.matchedTokens.Contains(_swipedTokensThisMove[0]))
+                        gameBoard.matchedTokens.Add(_swipedTokensThisMove[0]);
+                    MainGameState = GameState.MATCHING;
+                    return;
+                }
+
                 MainGameState = GameState.RETURN;
                 _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
                 return;
@@ -394,14 +445,54 @@ namespace WizardMatch
                 if(_specialAttack.currentCharge == _specialAttack.fullCharge)
                 {
                     _specialAttack.PressButton();
-                    Debug.Log("deed is done!!");
                     var sandra = FindFirstObjectByType<Sandra>();
                     sandra.PlayAnimation("UltimateStart");
                 }
                 _specialAttack.isTouched = false;
                 _specialAttack.PlayAnimation("Cancel",1);
             }
+            if (_skipButton.isTouched)
+            {
+                _skipButton.PressButton();
+                characterManager.AdvanceTurn();
+                MainGameState = GameState.ENEMY_TURN;
+                _skipButton.isTouched = false;
+            }
             _selectedToken = null;
+        }
+        void AdvanceLevel()
+        {
+            // bad long and terrible.
+            _currentLevel++;
+            foreach(Character c in characterManager.enemies)
+            {
+                Destroy(c.gameObject);
+            }
+
+            int rand = Random.Range(0, _currentLevel);
+            int whoToSpawn = 0;
+            for (int i = 0; i < characterManager.levelInfo.spawnableEnemies.Count; i++)
+            {
+                var c = characterManager.levelInfo.spawnableEnemies[i].GetComponentInChildren<Character>();
+                if (c.characterData.characterLevel >= rand)
+                {
+                    whoToSpawn = i;
+                }
+            }
+            characterManager.enemies.Clear();
+            var spawn = Instantiate(characterManager.levelInfo.spawnableEnemies[whoToSpawn],characterManager.enemySpawnPosition,Quaternion.identity);
+            characterManager.enemies.Add(spawn.GetComponentInChildren<Character>());
+
+            _generalTimer.SetTimer(3.0f);
+            
+            MainGameState = GameState.READY;
+
+            characterManager.InitializeCharacterQueue();
+
+            var sandra = FindFirstObjectByType<Sandra>();
+            sandra.PlayAnimation("Idle");
+            sandra.targetCharacter = spawn.GetComponentInChildren<Character>();
+
         }
     }
 }

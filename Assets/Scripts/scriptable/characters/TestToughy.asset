@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ea6f357622a511442b222352fbce25ae, type: 3}
-  m_Name: Imp
+  m_Name: TestToughy
   m_EditorClassIdentifier: 
-  CharacterElement: 1
+  CharacterElement: 0
   characterType: 1
   attacks:
   - {fileID: 2134563015160311519, guid: 7cdd9d3775791b64b9d983f7886bcaef, type: 3}
-  characterName: Imp
-  characterLevel: 1
-  baseHP: 20
-  baseATK: 1
+  characterName: Toughy
+  characterLevel: 2
+  baseHP: 30
+  baseATK: 3
   baseDEF: 0

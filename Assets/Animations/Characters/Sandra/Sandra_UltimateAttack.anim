@@ -31504,7 +31504,7 @@ AnimationClip:
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 1.1666666
+  - time: 1.35
     functionName: OnAnimationFinish
     data: UltimateAttack
     objectReferenceParameter: {fileID: 0}
