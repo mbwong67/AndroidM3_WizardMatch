@@ -52,5 +52,5 @@
         "Temp/": true
     },
     "dotnet.preferCSharpExtension": true,
-    "dotnet.defaultSolution": "AndroidM3.sln"
+    "dotnet.defaultSolution": "android_m3.sln"
 }

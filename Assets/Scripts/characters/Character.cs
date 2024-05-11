@@ -179,7 +179,7 @@ namespace WizardMatch
 
         public void OnAnimationFinish(string animation)
         {
-                switch(animation)
+            switch(animation)
             {
                 case "Attack" :
                     characterState = CharacterState.IDLE;
@@ -188,15 +188,13 @@ namespace WizardMatch
                 case "Damage" :
                     if (hp <= 0)
                     {
-                        characterState = CharacterState.DYING;
-                        
+                        characterState = CharacterState.DYING;   
                     }
                     else
                         characterState = CharacterState.IDLE;
                     break;
                 case "Death" : 
                     // some other logic here to notify death.
-                    PlayAnimation("Death");
                     characterState = CharacterState.DEAD;
                     break;
                 case "UltimateStart" :

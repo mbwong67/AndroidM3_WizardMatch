@@ -77,6 +77,8 @@ namespace WizardMatch
         ENEMY_ATTACKING,
         FRIENDLY_ATTACKING,
         WIN,
+        LOSE,
+        
         NONE
     };
     public enum CharacterType

@@ -17,7 +17,6 @@ namespace WizardMatch
         /// </summary>
         [SerializeField] public int matchCombo = 0;
         [SerializeField] public int tokenCombo = 0;
-        [SerializeField] public int specialTokenModifier = 1;
         [SerializeField] public Vector2 anchorPosition;
         [SerializeField] public List<SwipeScriptable> tokenTypes = new List<SwipeScriptable>();
         [SerializeField] public List<WizardToken> matchedTokens = new List<WizardToken>();
@@ -25,6 +24,7 @@ namespace WizardMatch
         [SerializeField] public List<WizardToken> tokensToCheckAfterMatch = new List<WizardToken>();
         [SerializeField] public WizardToken[,] playFieldTokens = new WizardToken[8,8];
         [SerializeField] public bool boardIsStill = false;
+        [SerializeField] public TokenUpgradeType highestUpgradeTypeThisTurn = TokenUpgradeType.DEFAULT;
 
         [SerializeField] private WizardToken _tokenPrefab;
         [SerializeField][Range(0.1f,10f)] private float _horizontalSpacing = 0.0f;
@@ -77,9 +77,7 @@ namespace WizardMatch
         {
             token.likeHorizontalNeighbors.Clear();
             token.likeVerticalNeighbors.Clear();
-
             
-
             int xCount = 
                 token.CountNeighborsInCertainDirection(token,SwipeDirection.LEFT) + token.CountNeighborsInCertainDirection(token,SwipeDirection.RIGHT);
             int yCount = 
@@ -112,17 +110,15 @@ namespace WizardMatch
                 matchedTokens.Add(neighborToken);
             }
 
-            specialTokenModifier = GetSpecialTokenModifier(token);
+            GetSpecialTokenModifier(token);
             matchedTokens.Add(token);
 
         }
 
-        int GetSpecialTokenModifier(WizardToken token)
+        void GetSpecialTokenModifier(WizardToken token)
         {
-            int ret = 1;
             if (token.matchType > MatchType.THREE_IN_A_ROW)
             {
-                ret++;
                 if (token.upgradeType == TokenUpgradeType.DEFAULT)
                     token.shouldUpgrade = true;
                 switch (token.matchType)
@@ -131,16 +127,27 @@ namespace WizardMatch
                         token.upgradeType = TokenUpgradeType.BOMB;
                         break;
                     case MatchType.CROSS :
-                        ret += 1;
                         token.upgradeType = TokenUpgradeType.CROSS;
                         break;
                     case MatchType.FIVE_IN_A_ROW :
-                        ret += 2;
                         token.upgradeType = TokenUpgradeType.TURBO;
                         break;                                                
                 }
             }
-            return ret;
+        }
+        public int GetFinalTokenModifier()
+        {
+            switch (highestUpgradeTypeThisTurn)
+            {
+                case TokenUpgradeType.BOMB :
+                    return 2;
+                case TokenUpgradeType.CROSS:
+                    return 3;
+                case TokenUpgradeType.TURBO :
+                    return 4;
+                default :
+                    return 1;
+            }
         }
         public void BreakAndScore()
         {
@@ -151,10 +158,9 @@ namespace WizardMatch
                 // this specific token is a special token. it needs to be compared with its neighbors to determine how many more tokens to break. 
                 if (token.upgradeType > TokenUpgradeType.DEFAULT && !token.shouldUpgrade)
                 {
-                    if (specialTokenModifier <= GetSpecialTokenModifier(token))
+                    if (highestUpgradeTypeThisTurn < token.upgradeType)
                     {
-                        specialTokenModifier = GetSpecialTokenModifier(token);
-                        Debug.Log("uhm new modifier = " + specialTokenModifier);
+                        highestUpgradeTypeThisTurn = token.upgradeType;
                     }
                     specialTokens.AddRange(AddTokensBasedOnUpgradeType(token));
                 }
@@ -256,8 +262,6 @@ namespace WizardMatch
                     }
                     break;
                 case TokenUpgradeType.CROSS :
-                    if (specialTokenModifier < 2)
-                        specialTokenModifier = 2;
 
                     for (int x = 0; x < playFieldTokens.GetLength(0); x++)
                     {
@@ -281,8 +285,6 @@ namespace WizardMatch
                     }
                     break;
                 case TokenUpgradeType.TURBO :
-                    if (specialTokenModifier < 3)
-                        specialTokenModifier = 3;
                     foreach(WizardToken t in playFieldTokens)
                     {
                         if (t != token && !matchedTokens.Contains(t) && t.realColor == token.realColor)

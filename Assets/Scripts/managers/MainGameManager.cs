@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace WizardMatch
 {
@@ -88,6 +89,15 @@ namespace WizardMatch
                         c.PlayAnimation("Win");
             return true;
         }
+        bool CheckFriendliesForDeath()
+        {
+            foreach(Character c in characterManager.friendlies)
+            {
+                if (c.characterState != CharacterState.DEAD && c.characterState != CharacterState.DYING)
+                    return false;
+            }
+            return true;
+        }
         void Update()
         {
             switch(MainGameState)
@@ -135,6 +145,7 @@ namespace WizardMatch
                         MainGameState = GameState.FRIENDLY_ATTACKING;
                         
                         Character cur = characterManager.currentActiveCharacter;
+                        cur.atkModifier = gameBoard.GetFinalTokenModifier();
                         DetermineDamageModifiers(cur);
                         
                         _specialAttack.currentCharge += cur.GetDamageToDeal();
@@ -147,13 +158,19 @@ namespace WizardMatch
                 case GameState.FRIENDLY_ATTACKING :
                 case GameState.ENEMY_ATTACKING :
                 {
-                    
+                    gameBoard.highestUpgradeTypeThisTurn = TokenUpgradeType.DEFAULT;
                     _skipButton.gameObject.SetActive(false);
                     break;
                 }
                 case GameState.WIN : 
                 {
                     _generalTimer.Tick(Time.deltaTime);
+                    break;
+                }
+                case GameState.LOSE :
+                {
+                    
+                    _generalTimer.Tick(Time.deltaTime); 
                     break;
                 }
 
@@ -164,7 +181,6 @@ namespace WizardMatch
 
                         gameBoard.matchCombo = 0;
                         gameBoard.tokenCombo = 0;
-                        gameBoard.specialTokenModifier = 1;
 
                         characterManager.AdvanceTurn();
                         if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.PLAYER)
@@ -175,6 +191,14 @@ namespace WizardMatch
                     }
                     if (CheckEnemiesForDeath())
                         MainGameState = GameState.WIN;
+                    if (CheckFriendliesForDeath())
+                    {
+                        _generalTimer.OnTimerEnd -= AdvanceLevel;
+                        _generalTimer.OnTimerEnd += GameOver;
+                        
+                        _fader.OnFadeOut += () => { SceneManager.LoadScene("gameover"); };
+                        MainGameState = GameState.LOSE;
+                    }
                     break;
                 // for when the enemy needs to attack. 
                 case GameState.ENEMY_TURN : 
@@ -210,7 +234,6 @@ namespace WizardMatch
             if (tokenCount >= 3 && tokenCount < 6)
                 finalTokenBonus = 1;
             
-            
             if (tokenCount >= 6 && tokenCount < 9)
                 finalTokenBonus = 2;
             else if (tokenCount >= 9 && tokenCount < 15)
@@ -219,11 +242,10 @@ namespace WizardMatch
                 finalTokenBonus = 5;
             else if (tokenCount >= 21)
                 finalTokenBonus = 7;
-            
 
             c.comboBonus = finalComboBonus;
             c.tokenBonus = finalTokenBonus;
-            c.atkModifier = gameBoard.specialTokenModifier;
+            c.atkModifier = gameBoard.GetFinalTokenModifier();
         }
         /// <summary>
         /// Prep active character's damage numbers, break tokens on board. 
@@ -233,8 +255,6 @@ namespace WizardMatch
             OnClear();
             
             gameBoard.BreakAndScore();
-            
-
         }
 
         /// <summary>
@@ -258,8 +278,8 @@ namespace WizardMatch
             MainGameState = GameState.WAIT_GENERAL;
             // Unsubscribe this event to this method until needed to be invoked again. 
             characterManager.currentActiveCharacter.OnCharacterAnimationFinish -= OnAttackFinish;
-
         }
+        
         void HandleInput()
         {
 
@@ -412,10 +432,8 @@ namespace WizardMatch
                 // if it does.
                 if (cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
                 {
-                    _swipedTokensThisMove[0].upgradeType = TokenUpgradeType.TURBO;
-                    // also if it isn't in the running, add this token. 
-                    if (!gameBoard.matchedTokens.Contains(_swipedTokensThisMove[0]))
-                        gameBoard.matchedTokens.Add(_swipedTokensThisMove[0]);
+                    Debug.Log("this is an ultimate attack with no matches");
+                    ArtificiallyInjectSpecialToken(_swipedTokensThisMove[0],TokenUpgradeType.TURBO);
                     MainGameState = GameState.MATCHING;
                     return;
                 }
@@ -424,9 +442,24 @@ namespace WizardMatch
                 _swipedTokensThisMove[0].SwapTokenPositions(_swipedTokensThisMove[0],_swipedTokensThisMove[1]);
                 return;
             }
+            if (_swipedTokensThisMove[0].matchType > MatchType.NO_MATCH && cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
+            {
+                Debug.Log("this is an ultimate attack with no matches");
+                ArtificiallyInjectSpecialToken(_swipedTokensThisMove[0],TokenUpgradeType.TURBO);
+            }
 
             MainGameState = GameState.MATCHING;
 
+        }
+
+        void ArtificiallyInjectSpecialToken(WizardToken token, TokenUpgradeType type)
+        {
+            token.upgradeType = type;
+            token.shouldUpgrade = false;
+            if (!gameBoard.matchedTokens.Contains(token))
+            {
+                gameBoard.matchedTokens.Add(token);
+            }
         }
         void WaitUntilSwipedTokensStop(GameState stateIfSoIsTrue = GameState.READY)
         {
@@ -490,9 +523,14 @@ namespace WizardMatch
             characterManager.InitializeCharacterQueue();
 
             var sandra = FindFirstObjectByType<Sandra>();
-            sandra.PlayAnimation("Idle");
+            sandra.PlayAnimation("NewRound");
+            sandra.ResetModifiers();
             sandra.targetCharacter = spawn.GetComponentInChildren<Character>();
 
+        }
+        void GameOver()
+        {
+            _fader.PlayAnimation("FadeOut");
         }
     }
 }
