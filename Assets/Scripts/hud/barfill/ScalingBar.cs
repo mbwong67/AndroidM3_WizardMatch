@@ -53,7 +53,7 @@ namespace WizardMatch
 
             Vector3 curTargetScale = new Vector3(ratio, _initialScale.y, _initialScale.z);
             _barFill.transform.localScale = Vector3.Lerp(_barFill.transform.localScale,curTargetScale,_moveSpeed * Time.deltaTime);
-            // _barFill.transform.position = Vector3.Lerp(_barFill.transform.position,curTarget,_moveSpeed * Time.deltaTime);
+            _barFill.transform.position = Vector3.Lerp(_barFill.transform.position,curTarget,_moveSpeed * Time.deltaTime);
             _barFill.transform.position = curTarget;
 
 
