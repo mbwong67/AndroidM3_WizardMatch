@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -44,7 +45,6 @@ namespace WizardMatch
         }
         void Initialize()
         {
-            Debug.Log("woah");
             _controls.Enable();
             gameBoard.enabled = true;
             gameBoard.InitializeBoard();
@@ -103,9 +103,12 @@ namespace WizardMatch
             switch(MainGameState)
             {
                 case GameState.READY :
-                    HandleInput();
                     
-                    _skipButton.gameObject.SetActive(true);
+                    if (characterManager.AllCharactersAreStill())
+                    {
+                        HandleInput();
+                        _skipButton.gameObject.SetActive(true);
+                    }
 
                     if (CheckEnemiesForDeath())
                     {
@@ -184,7 +187,9 @@ namespace WizardMatch
 
                         characterManager.AdvanceTurn();
                         if (characterManager.currentActiveCharacter.characterData.characterType == CharacterType.PLAYER)
+                        {
                             MainGameState = GameState.READY;
+                        }
                         else
                             MainGameState = GameState.ENEMY_TURN;
 
@@ -423,16 +428,29 @@ namespace WizardMatch
                 return;
             
 
-            // if this swipe isn't valid, return as soon as possible.
             gameBoard.CheckTokenForMatches(_swipedTokensThisMove[0]);
             gameBoard.CheckTokenForMatches(_swipedTokensThisMove[1]);
-            if (_swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH)
+
+            bool bothDontMatch = _swipedTokensThisMove[0].matchType == MatchType.NO_MATCH && _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH;
+            bool onlyOneDoesntMatch = _swipedTokensThisMove[0].matchType == MatchType.NO_MATCH || _swipedTokensThisMove[1].matchType == MatchType.NO_MATCH;
+
+            if (onlyOneDoesntMatch)
+            {
+                if (cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
+                {
+                    ArtificiallyInjectSpecialToken(_swipedTokensThisMove[0],TokenUpgradeType.TURBO);
+                    MainGameState = GameState.MATCHING;
+                    return;
+                }
+            }
+
+            // if this swipe isn't valid, return as soon as possible.
+            if (bothDontMatch)
             {
                 // if the current character currently doesn't have the ultimate charged, ignore however many have been matched and treat the first as 
                 // if it does.
                 if (cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
                 {
-                    Debug.Log("this is an ultimate attack with no matches");
                     ArtificiallyInjectSpecialToken(_swipedTokensThisMove[0],TokenUpgradeType.TURBO);
                     MainGameState = GameState.MATCHING;
                     return;
@@ -444,13 +462,14 @@ namespace WizardMatch
             }
             if (_swipedTokensThisMove[0].matchType > MatchType.NO_MATCH && cur.currentCharacterAbility == CharacterAbility.ULTIMATE)
             {
-                Debug.Log("this is an ultimate attack with no matches");
                 ArtificiallyInjectSpecialToken(_swipedTokensThisMove[0],TokenUpgradeType.TURBO);
             }
 
             MainGameState = GameState.MATCHING;
 
         }
+
+
 
         void ArtificiallyInjectSpecialToken(WizardToken token, TokenUpgradeType type)
         {
@@ -487,8 +506,8 @@ namespace WizardMatch
             if (_skipButton.isTouched)
             {
                 _skipButton.PressButton();
-                characterManager.AdvanceTurn();
-                MainGameState = GameState.ENEMY_TURN;
+                _skipButton.gameObject.SetActive(false);
+                MainGameState = GameState.WAIT_GENERAL;
                 _skipButton.isTouched = false;
             }
             _selectedToken = null;
@@ -499,18 +518,19 @@ namespace WizardMatch
             _currentLevel++;
             foreach(Character c in characterManager.enemies)
             {
-                Destroy(c.gameObject);
+                Destroy(c.transform.parent.gameObject);
             }
 
-            int rand = Random.Range(0, _currentLevel);
+            Debug.Log("max level in range : " + characterManager.levelInfo.spawnableEnemies.Max(c => c.GetComponentInChildren<Character>().characterData.characterLevel));
+            int rand = Random.Range(0, characterManager.levelInfo.spawnableEnemies.Max(c => c.GetComponentInChildren<Character>().characterData.characterLevel) + 1);
+            Debug.Log("rand : " + rand);
+            
             int whoToSpawn = 0;
             for (int i = 0; i < characterManager.levelInfo.spawnableEnemies.Count; i++)
             {
                 var c = characterManager.levelInfo.spawnableEnemies[i].GetComponentInChildren<Character>();
-                if (c.characterData.characterLevel >= rand)
-                {
+                if (c.characterData.characterLevel <= _currentLevel && c.characterData.characterLevel >= rand)
                     whoToSpawn = i;
-                }
             }
             characterManager.enemies.Clear();
             var spawn = Instantiate(characterManager.levelInfo.spawnableEnemies[whoToSpawn],characterManager.enemySpawnPosition,Quaternion.identity);
@@ -525,7 +545,15 @@ namespace WizardMatch
             var sandra = FindFirstObjectByType<Sandra>();
             sandra.PlayAnimation("NewRound");
             sandra.ResetModifiers();
+
+            gameBoard.matchCombo = 0;
+            gameBoard.tokenCombo = 0;
+
+            sandra.AddToStat(5,"HP");
+
             sandra.targetCharacter = spawn.GetComponentInChildren<Character>();
+            characterManager.AdvanceTurn();
+
 
         }
         void GameOver()

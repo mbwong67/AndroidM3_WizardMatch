@@ -15,9 +15,9 @@ MonoBehaviour:
   CharacterElement: 0
   characterType: 1
   attacks:
-  - {fileID: 2134563015160311519, guid: 7cdd9d3775791b64b9d983f7886bcaef, type: 3}
-  characterName: Gole m
+  - {fileID: 5393212410745313184, guid: 28e28317ae3c2e54189af2be4a18cba1, type: 3}
+  characterName: Golem
   characterLevel: 5
-  baseHP: 25
+  baseHP: 30
   baseATK: 4
   baseDEF: 0

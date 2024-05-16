@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ea6f357622a511442b222352fbce25ae, type: 3}
-  m_Name: TestToughy
+  m_Name: ToughGolem
   m_EditorClassIdentifier: 
-  CharacterElement: 0
+  CharacterElement: 2
   characterType: 1
   attacks:
-  - {fileID: 2134563015160311519, guid: 7cdd9d3775791b64b9d983f7886bcaef, type: 3}
-  characterName: Toughy
-  characterLevel: 2
-  baseHP: 30
-  baseATK: 3
+  - {fileID: 5393212410745313184, guid: 28e28317ae3c2e54189af2be4a18cba1, type: 3}
+  characterName: Tough Golem
+  characterLevel: 8
+  baseHP: 60
+  baseATK: 5
   baseDEF: 0

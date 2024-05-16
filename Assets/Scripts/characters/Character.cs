@@ -145,7 +145,6 @@ namespace WizardMatch
         public int GetDamageToDeal()
         {
             int ret = atkModifier * (atk + (comboBonus * tokenBonus));
-            // Debug.Log("Attack Modifier : " + atkModifier + " Base Attack " + atk + " + ( Combo Bonus : " + comboBonus + " * Token Bonus : " + tokenBonus + ") = " + ret);
             return ret;
         }
 
@@ -205,7 +204,7 @@ namespace WizardMatch
                     PlayAnimation("Idle",1);
                     break;
                 default :
-                    Debug.Log("Animation " + animation + " has no switch case!");
+                    Debug.LogWarning("Animation " + animation + " has no switch case!");
                     break;
             }
             OnCharacterAnimationFinish(animation);

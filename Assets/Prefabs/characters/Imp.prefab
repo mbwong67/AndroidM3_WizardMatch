@@ -290,8 +290,10 @@ MonoBehaviour:
   currentCharacterAbility: 0
   characterState: 0
   characterAnimator: {fileID: 7873836969687899234}
+  defaultLayer: 0
   atkModifier: 1
-  damageBonus: 0
+  comboBonus: 0
+  tokenBonus: 0
   hp: 0
   atk: 0
   def: 0
@@ -905,7 +907,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.75
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
       propertyPath: m_LocalScale.y

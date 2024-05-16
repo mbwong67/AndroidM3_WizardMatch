@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6187463597384132371}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eye_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -42,7 +42,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1288766200536863749}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eyebrow_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -73,7 +73,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4120528965824364100}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Golem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -93,8 +93,9 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5796628995188491965}
+  - {fileID: 2871428714271536540}
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4491705480675265982
 GameObject:
@@ -105,7 +106,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3064425001951808697}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eyebrow_m
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -138,7 +139,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 506446401756185449}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: hand_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -169,7 +170,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6717414594927096807}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: jaw
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -200,7 +201,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1158754484129233561}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eye_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -235,7 +236,8 @@ GameObject:
   - component: {fileID: 7200321178935264560}
   - component: {fileID: 1150894467183945173}
   - component: {fileID: 140595016992398135}
-  m_Layer: 0
+  - component: {fileID: 7159742791215777045}
+  m_Layer: 6
   m_Name: golem_animbase
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -388,6 +390,51 @@ MonoBehaviour:
   hp: 0
   atk: 0
   def: 0
+--- !u!61 &7159742791215777045
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5422078606870806631}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0.00000011920929, y: -0.046001554}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1.953125, y: 3.9296875}
+    newSize: {x: 1.953125, y: 3.9296875}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  serializedVersion: 2
+  m_Size: {x: 1.8750005, y: 3.8029423}
+  m_EdgeRadius: 0
 --- !u!1 &5474136819587449810
 GameObject:
   m_ObjectHideFlags: 0
@@ -397,7 +444,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4896739136707903770}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eyebrow_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -428,7 +475,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5474938023864072979}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -462,7 +509,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 740138873064331943}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: chain_2
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -493,7 +540,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7954398287885626379}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: hand_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -524,7 +571,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 740811791699089442}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: chain_1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -555,7 +602,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6782580339391180780}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: torso
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -589,7 +636,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8410794647269661776}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: lowest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -623,7 +670,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6797408524114054675}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: eye_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -645,3 +692,73 @@ Transform:
   m_Father: {fileID: 6187463597384132371}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &2266374635117140879
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4120528965824364100}
+    m_Modifications:
+    - target: {fileID: 2280660670650339943, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: character
+      value: 
+      objectReference: {fileID: 140595016992398135}
+    - target: {fileID: 3605788065023911121, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_Name
+      value: HealthBar
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_RootOrder
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+--- !u!4 &2871428714271536540 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4083245933119024659, guid: fea12c7f73d3161448c23a161bbf43a2, type: 3}
+  m_PrefabInstance: {fileID: 2266374635117140879}
+  m_PrefabAsset: {fileID: 0}

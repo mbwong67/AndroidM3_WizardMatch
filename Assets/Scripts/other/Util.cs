@@ -24,7 +24,6 @@ namespace WizardMatch
         public void Tick(float deltaTime)
         {
             if (RemaingSeconds == 0f) return;
-            //Debug.Log(RemaingSeconds);
             RemaingSeconds -= deltaTime;
 
             CheckForTimerEnd();

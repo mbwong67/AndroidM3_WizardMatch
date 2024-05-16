@@ -101,7 +101,8 @@ namespace WizardMatch
         /// </summary>
         public void AdvanceTurn()
         {
-            // temp
+            // Debug.Break();
+            // temp. this was made before i decided to just have one enemy at a time with only one playable character.
             if (characterQueue.Count < 2)
                 return;
             if (currentActiveCharacter)

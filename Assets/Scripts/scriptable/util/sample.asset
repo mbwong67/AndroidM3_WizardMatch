@@ -16,8 +16,9 @@ MonoBehaviour:
   - {fileID: 3695588014704235393, guid: c19ec6c7c20875249af39737acf6cf36, type: 3}
   spawnableEnemies:
   - {fileID: 5048933132742276600, guid: f0e0158e7b778fd429c913b5d6ea46ba, type: 3}
-  - {fileID: 7469680057272481824, guid: e66771efc0e8c5d43a04f9047ebc0423, type: 3}
+  - {fileID: 5177465556715808433, guid: dcf2dce9124091e4b9f207b9bb25734a, type: 3}
   - {fileID: 3785553903283681158, guid: 918440b51ba7fd944b4076119b812879, type: 3}
+  - {fileID: 7469680057272481824, guid: e66771efc0e8c5d43a04f9047ebc0423, type: 3}
   spawnPositions:
   - {x: -1, y: 2.25, z: 0}
   - {x: 1.5, y: 2, z: 0}
