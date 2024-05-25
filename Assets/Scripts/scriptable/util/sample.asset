@@ -19,6 +19,8 @@ MonoBehaviour:
   - {fileID: 5177465556715808433, guid: dcf2dce9124091e4b9f207b9bb25734a, type: 3}
   - {fileID: 3785553903283681158, guid: 918440b51ba7fd944b4076119b812879, type: 3}
   - {fileID: 7469680057272481824, guid: e66771efc0e8c5d43a04f9047ebc0423, type: 3}
+  - {fileID: 3292360419514377912, guid: 263be611e817ea040bfd48007137a6f0, type: 3}
+  - {fileID: 9048330172193330800, guid: 2068a001941d1b842a6fe951d96d8ecc, type: 3}
   spawnPositions:
   - {x: -1, y: 2.25, z: 0}
   - {x: 1.5, y: 2, z: 0}
